@@ -26,9 +26,9 @@ function setup () {
                                [0, 20]]});
     game.add_brick({color: "red", vx: 0,
                     vertices: [[-40, 0],
-                               [-20, 0],
-                               [-20, 20],
-                               [-40, 20]]});
+                               [-26, 14],
+                               [-40, 28],
+                               [-54, 14]]});
     game.update();
     
     // game.envs.mysize = width/10;

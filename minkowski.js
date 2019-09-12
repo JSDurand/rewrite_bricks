@@ -35,6 +35,7 @@ game.gauss.map = function (rectangle) {
 // boundaries of the Minkowski sum as well, but this is not used elsewhere, and might be
 // deleted later on.
 game.minkowski = function (rec1, rec2) {
+    var p0   = performance.now();
     var ver1 = rec1.vertices,
         ver2 = rec2.vertices;
 
@@ -64,8 +65,6 @@ game.minkowski = function (rec1, rec2) {
         return game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, e),
                             [c1x, c1y]);
         });
-    // Now rec1 is axis-aligned and centered at the origin.
-    // Take the unit normals of rec2.
 
     var transformed_edge1 = transformed_ver1.map(function (e, i) {
         return [e, transformed_ver1[(i+1) % transformed_ver1.length]];
@@ -73,4 +72,22 @@ game.minkowski = function (rec1, rec2) {
         transformed_edge2 = transformed_ver2.map(function (e, i) {
         return [e, transformed_ver2[(i+1) % transformed_ver2.length]];
         });
+
+    // Now rec1 is axis-aligned and centered at the origin.
+    // Take the unit normals of rec2.
+
+    var unit_normal_vectors =
+        [game.unit_normal(game.sub_vec(transformed_edge2[0][1], transformed_edge2[0][0])),
+         game.unit_normal(game.sub_vec(transformed_edge2[1][1], transformed_edge2[1][0]))];
+
+    // determine the signs
+    var two_pairs = unit_normal_vectors.map(function (e) {
+        return e.map(game.sign);
+    });
+
+    var antipodal_pairs = game.scalar_mat(-1, two_pairs);
+    var p2 = performance.now();
+
+    console.log("1-2: " + (p2-p0));
+    return antipodal_pairs;
 };

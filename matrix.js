@@ -1,6 +1,15 @@
 /* global game */
 
-// only provides two-dimensional operations
+// sign function
+game.sign = function (n) {
+    if (n > 0) {
+        return 1;
+    } else if (n < 0) {
+        return -1;
+    } else {
+        return 0;
+    }
+};
 
 // translate coordinates
 game.translateCoordinate = function (coor) {
