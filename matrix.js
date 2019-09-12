@@ -2,6 +2,12 @@
 
 // only provides two-dimensional operations
 
+// translate coordinates
+game.translateCoordinate = function (coor) {
+    var x = coor[0],
+        y = coor[1];
+    return [x + game.envs.origin.x, game.envs.origin.y - y];
+};
 
 // matrix operations
 

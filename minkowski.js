@@ -34,6 +34,6 @@ game.gauss.map = function (rectangle) {
 // the boundaries of the Minkowski sum; for the sake of testing, we shall first give the
 // boundaries of the Minkowski sum as well, but this is not used elsewhere, and might be
 // deleted later on.
-game.gauss.minkowski = function (rec1, rec2) {
+game.minkowski = function (rec1, rec2) {
 
 };

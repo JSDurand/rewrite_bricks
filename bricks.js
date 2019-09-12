@@ -1,12 +1,9 @@
-/* global game stroke rect fill */
+/* global game stroke rect fill beginShape endShape vertex  */
 
 // implements the bricks
 
 game.add_brick = (params) => {
-    var minx     = params["minx"]     || 0,
-        miny     = params["miny"]     || 0,
-        lenx     = params["lenx"]     || 20,
-        leny     = params["leny"]     || 20,
+    var vertices = params["vertices"] || [[0, 0], [20, 0], [20, 20], [0, 20]],
         density  = params["density"]  || 1,
         color    = params["color"]    || "red",
         can_move = params["can_move"] || false,
@@ -14,7 +11,7 @@ game.add_brick = (params) => {
         vy       = params["vy"]       || 0,
         w        = params["w"]        || 0;
 
-    var old_id = -1;
+    var old_id   = -1;
 
     for (var i = 0; i < game.objects.length; i++) {
         var ob = game.objects[i];
@@ -24,77 +21,67 @@ game.add_brick = (params) => {
     }
 
     var brick = {
-        minx     : minx,
-        miny     : miny,
-        lenx     : lenx,
-        leny     : leny,
-        vx       : vx,
-        vy       : vy,
-        w        : w,
-        density  : density,
-        color    : color,
-        can_move : can_move,
-        id       : old_id + 1,
+        vertices: vertices,
+        vx      : vx,
+        vy      : vy,
+        w       : w,
+        density : density,
+        color   : color,
+        can_move: can_move,
+        id      : old_id + 1,
+        vertices: vertices,
 
-        // normal means normal coordinates
-        normal_min_x: function () {
-            return this.minx;
-        },
-        normal_min_y: function () {
-            return this.miny;
-        },
-        normal_max_x: function () {
-            return this.minx + this.lenx;
-        },
-        normal_max_y: function () {
-            return this.miny + this.leny;
-        },
+        // center
+        c_x: function () {
+            var res = 0,
+                len = this.vertices.length;
 
-        // this is for drawing on the board
-        min_x: function () {
-            return this.minx + game.envs.origin.x;
-        },
-        min_y: function () {
-            return -1 * this.miny + game.envs.origin.y;
-        },
-        max_x: function () {
-            return this.minx + game.envs.origin.x + this.lenx;
-        },
-        max_y: function () {
-            return -1 * this.miny + game.envs.origin.y - this.leny;
-        },
+            for (var i = 0; i < len; i++) {
+                res += vertices[i][0];
+            }
 
-        // center, on normal coordinates
-        normal_c_x: function () {
-            return this.minx + this.lenx / 2;
+            return res / len;
         },
-        normal_c_y: function () {
-            return this.miny + this.leny / 2;
+        c_y: function () {
+            var res = 0,
+                len = this.vertices.length;
+
+            for (var i = 0; i < len; i++) {
+                res += vertices[i][1];
+            }
+
+            return res / len;
         },
-        vertices: function () {
-            return [
-                [this.normal_min_x(), this.normal_min_y()],
-                [this.normal_max_x(), this.normal_min_y()],
-                [this.normal_max_x(), this.normal_max_y()],
-                [this.normal_min_x(), this.normal_max_y()],
-            ];
+        // translation by a vector
+        translate: function (x, y) {
+            this.motion_updated  = false;
+            for (var i = 0; i < this.vertices.length; i++) {
+                var vi = vertices[i],
+                    vx = vi[0],
+                    vy = vi[1];
+                vertices[i] =  [x + vx, y + vy];
+            }
         },
         get_in_screen: function () {
-            if (this.min_x() < 0) {
-                this.minx -= this.min_x();
-                this.vx *= -1;
-            }
-            if (this.max_x() > game.envs.width) {
-                this.minx += game.envs.width - this.max_x();
-                this.vx *= -1;
-            }
-            if (this.min_y() > game.envs.height) {
-                this.miny += game.envs.height - this.min_y();
-                this.vy *= -1;
-            }
-            if (this.max_y() < 0) {
-                this.miny -= this.max_y();
-                this.vy *= -1;
+            for (var i = 0; i < this.vertices.length; i++) {
+                var vi      = vertices[i],
+                    x       = vi[0],
+                    y       = vi[1],
+                    lengthx = game.envs.width  / 2,
+                    lengthy = game.envs.height / 2;
+
+                if (x < -1 * lengthx) {
+                    this.translate(-1 * lengthx - x, 0);
+                }
+                if (x > lengthx) {
+                    this.translate(lengthx - x, 0);
+                }
+                if (y < -1 * lengthy) {
+                    this.translate(0, -1 * lengthy - y);
+                }
+                if (y > lengthy) {
+                    this.translate(0, lengthy - y);
+                }
             }
         },
 
@@ -106,23 +93,26 @@ game.add_brick = (params) => {
         update_motion_matrix: function () {
             var cosw           = Math.cos(this.w),
                 sinw           = Math.sin(this.w),
-                cx             = this.normal_c_x(),
-                cy             = this.normal_c_y();
+                cx             = this.c_x(),
+                cy             = this.c_y();
             this.motion_matrix =
                 [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + this.vx],
                  [sinw, cosw     , -1 * sinw * cx -cosw * cy + cy + this.vy] ,
                  [0   , 0        , 1]];
         },
-        update: function () {
-            this.motion_updated  = false;
-            this.minx           += this.vx;
-            this.miny           += this.vy;
+        update_position: function () {
+            this.translate(this.vx, this.vy);
             this.get_in_screen();
         },
         draw_obj: function () {
             stroke(this.color);
             fill(this.color);
-            rect(this.minx+game.envs.origin.x, this.miny+game.envs.origin.y, this.lenx, this.leny);
+            beginShape();
+            for (var i = 0; i < this.vertices.length; i++) {
+                var pi = game.translateCoordinate(vertices[i]);
+                vertex(pi[0], pi[1]);
+            }
+            endShape();
         },
     };
 

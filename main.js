@@ -19,8 +19,16 @@ function setup () {
     game.envs.life    = 10;
     game.envs.level   = 1;
     textSize(40);
-    game.add_brick({color: "blue"});
-    game.add_brick({minx: 100, color: "red", vx: 10});
+    game.add_brick({color: "blue",
+                    vertices: [[0,0],
+                               [20, 0],
+                               [20, 20],
+                               [0, 20]]});
+    game.add_brick({minx: 100, color: "red", vx: 10,
+                    vertices: [[-40, 0],
+                               [-20, 0],
+                               [-20, 20],
+                               [-40, 20]]});
     game.update();
     
     // game.envs.mysize = width/10;

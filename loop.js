@@ -11,7 +11,7 @@ game.update = () => {
     for (var i = 0; i < game.objects.length; i++) {
         var ob = game.objects[i];
 
-        ob.update();
+        ob.update_position();
     }
 
     // check collisions and respond to those
