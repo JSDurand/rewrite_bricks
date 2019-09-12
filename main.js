@@ -19,8 +19,9 @@ function setup () {
     game.envs.life    = 10;
     game.envs.level   = 1;
     textSize(40);
-    game.add_brick(null, null, null, null, null, "blue");
-    game.add_brick(-100, 0, null, null, null, "blue", null, 10, 0);
+    game.add_brick({color: "blue"});
+    game.add_brick({minx: 100, color: "red", vx: 10});
+    game.update();
     
     // game.envs.mysize = width/10;
     // game.envs.diff = height/10;
@@ -29,7 +30,7 @@ function setup () {
 }
 
 function draw() {
-    game.update();
+    // game.update();
     // if (game.envs.intro) {
     //   startInterface();
     // } else if (game.envs.bricks.length == 0) {

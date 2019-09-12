@@ -73,8 +73,8 @@ game.collision.statics = (obja, objb) => {
         // both are rectangles
 
         // take vertices
-        var vera = obja.vertices,
-            verb = objb.vertices;
+        var vera = obja.vertices(),
+            verb = objb.vertices();
 
         // transform to edges
         var edgea = vera.map( (e, i) => {

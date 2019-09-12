@@ -16,7 +16,7 @@ game.gauss.compute_normal = function (edge) {
 
 // This function takes each edge and computes its normal, and then pair the two.
 game.gauss.map = function (rectangle) {
-    var vertices = rectangle.vertices;
+    var vertices = rectangle.vertices();
 
     var edges = vertices.map(function (e, i) {
         return [e, vertices[(i+1) % vertices.length]];
@@ -30,3 +30,10 @@ game.gauss.map = function (rectangle) {
     });
 };
 
+// Instead of producing the boundary of the Minkowski sum, we shall give the equations of
+// the boundaries of the Minkowski sum; for the sake of testing, we shall first give the
+// boundaries of the Minkowski sum as well, but this is not used elsewhere, and might be
+// deleted later on.
+game.gauss.minkowski = function (rec1, rec2) {
+
+};
