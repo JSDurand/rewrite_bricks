@@ -35,5 +35,42 @@ game.gauss.map = function (rectangle) {
 // boundaries of the Minkowski sum as well, but this is not used elsewhere, and might be
 // deleted later on.
 game.minkowski = function (rec1, rec2) {
+    var ver1 = rec1.vertices,
+        ver2 = rec2.vertices;
 
+    var c1x = rec1.c_x(),
+        c1y = rec1.c_y();
+    
+    // extract edges
+    var edge1 = ver1.map(function (e, i) {
+        return [e, ver1[(i+1) % ver1.length]];
+        }),
+        edge2 = ver2.map(function (e, i) {
+        return [e, ver2[(i+1) % ver2.length]];
+        });
+
+    // Transform the basis so that rec1 is axis-aligned and centered at the origin. Take
+    // the first two edges as the (orthogonal) basis
+    var basis = [game.unit_vec(game.sub_vec(edge1[0][1],edge1[0][0])),
+                 game.unit_vec(game.sub_vec(edge1[1][1], edge1[1][0]))];
+
+    var inverse_transform_matrix = game.inverse_2d_mat(basis);
+
+    var transformed_ver1 = ver1.map(function (e) {
+        return game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, e),
+                            [c1x, c1y]);
+        }),
+        transformed_ver2 = ver2.map(function (e) {
+        return game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, e),
+                            [c1x, c1y]);
+        });
+    // Now rec1 is axis-aligned and centered at the origin.
+    // Take the unit normals of rec2.
+
+    var transformed_edge1 = transformed_ver1.map(function (e, i) {
+        return [e, transformed_ver1[(i+1) % transformed_ver1.length]];
+        }),
+        transformed_edge2 = transformed_ver2.map(function (e, i) {
+        return [e, transformed_ver2[(i+1) % transformed_ver2.length]];
+        });
 };

@@ -20,11 +20,11 @@ function setup () {
     game.envs.level   = 1;
     textSize(40);
     game.add_brick({color: "blue",
-                    vertices: [[0,0],
+                    vertices: [[0, 0],
                                [20, 0],
                                [20, 20],
                                [0, 20]]});
-    game.add_brick({minx: 100, color: "red", vx: 10,
+    game.add_brick({color: "red", vx: 0,
                     vertices: [[-40, 0],
                                [-20, 0],
                                [-20, 20],

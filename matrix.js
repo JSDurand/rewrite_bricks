@@ -37,22 +37,64 @@ game.inverse_pro_matrix = function (mat) {
                             [0             , 0             , 1]]);
 };
 
+// 2d matrix inverses
+
+game.inverse_2d_mat = function (mat) {
+    var det = game.det_for_pro_mat(mat);
+    if (det === 0) {
+        throw("The matrix is not invertible!");
+    }
+
+    return game.scalar_mat(1 / det,
+                           [[mat[1][1]     , -1 * mat[0][1]],
+                            [-1 * mat[1][0], mat[0][0]]]);
+};
+
+// matrix multiplication on a vector
+
+game.mul_mat_on_vec = function (mat, vec) {
+    return mat.map(function (e, i) {
+        return game.dot_prod(e, vec);
+    });
+};
+
+// matrix multiplication
+
+// game.mul_mat = function (mat1, mat2) {
+//     return mat1.map(function(e, i) {
+
+//     });
+// };
+
+
 // vector operations
 
 game.add_vec = function (v1, v2) {
-    return [v1[0]+v2[0], v1[1]+v2[1]];
+    return v1.map(function (e, i) {
+        return e + v2[i];
+    });
 };
 
 game.sub_vec = function (v1, v2) {
-    return [v1[0]-v2[0], v1[1]-v2[1]];
+    return v1.map(function (e, i) {
+        return e - v2[i];
+    });
 };
 
 game.scalar_vec = function (s, v) {
-    return [s*v[0], s*v[1]];
+    return v.map(function (e) {
+        return s * e;
+    });
 };
 
 game.dot_prod = function (v1, v2) {
-    return v1[0] * v2[0] + v1[1] * v2[1];
+    var res = 0;
+
+    for (var i = 0; i < v1.length; i++) {
+        res += v1[i] * v2[i];
+    }
+
+    return res;
 };
 
 game.det_for_vec = function (v1, v2) {
@@ -67,6 +109,10 @@ game.normal_vec = function (v) {
     return [v[1], -1 * v[0]];
 };
 
+game.unit_vec = function (v) {
+    return game.scalar_vec(1/game.len_vec(v), v);
+};
+
 game.unit_normal = function (v) {
-    return game.scalar_vec(1/game.len_vec(v), game.normal_vec(v));
+    return game.unit_vec(game.normal_vec(v));
 };

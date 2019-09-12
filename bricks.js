@@ -56,10 +56,17 @@ game.add_brick = (params) => {
         translate: function (x, y) {
             this.motion_updated  = false;
             for (var i = 0; i < this.vertices.length; i++) {
-                var vi = vertices[i],
+                var vi = this.vertices[i],
                     vx = vi[0],
                     vy = vi[1];
                 vertices[i] =  [x + vx, y + vy];
+            }
+        },
+        // general movement as a linear mapping in the projective space
+        move: function (move_matrix) {
+            this.motion_updated = false;
+            for (var i = 0; i < this.vertices.length; i++) {
+                this.vertices[i] = game.mul_mat_on_vec(move_matrix, [].concat(this.vertices[i], [1]));
             }
         },
         get_in_screen: function () {
