@@ -34,3 +34,7 @@ game.len_vec = function (v) {
 game.normal_vec = function (v) {
     return [v[1], -1 * v[0]];
 };
+
+game.unit_normal = function (v) {
+    return game.scalar_vec(1/game.len_vec(v), game.normal_vec(v));
+};

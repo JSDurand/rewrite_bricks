@@ -1,0 +1,4 @@
+/* global game */
+
+game.objects = [];
+

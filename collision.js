@@ -51,7 +51,7 @@ game.collision.two_edges = (ea, eb) => {
         return v4;
     }
 
-    // v1 and v2 lie on different sides of the edge 3-4 and similarly for the dual
+    // v1 and v2 should lie on different sides of the edge 3-4 and similarly for the dual
     var ind_on_side1 = game.collision.point_edge_side(v1, v3, v4),
         ind_on_side2 = game.collision.point_edge_side(v2, v3, v4),
         ind_on_side3 = game.collision.point_edge_side(v3, v1, v2),
@@ -64,14 +64,13 @@ game.collision.two_edges = (ea, eb) => {
     }
 };
 
-
 game.collision.statics = (obja, objb) => {
-    // The type of an object is either 0 or 1; 0 means polygon and 1 means circle.
+    // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
     var type_sig = obja.type + 2 * objb.type;
 
     switch (type_sig) {
     case 0:
-        // both are polygons
+        // both are rectangles
 
         // take vertices
         var vera = obja.vertices,
@@ -96,10 +95,10 @@ game.collision.statics = (obja, objb) => {
         
         break;
     case 1:
-        // a is polygon and b is circle
+        // a is rectangle and b is circle
         break;
     case 2:
-        // b is polygon and a is circle
+        // b is rectangle and a is circle
         break;
     case 3:
         // both are circles
