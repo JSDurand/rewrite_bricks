@@ -1,4 +1,4 @@
-/* global game stroke rect fill beginShape endShape vertex  */
+/* global game stroke fill beginShape endShape vertex  */
 
 // implements the bricks
 

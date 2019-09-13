@@ -1,4 +1,4 @@
-/* global game */
+/* global game stroke fill line ellipse */
 
 // This file deals with the Minkowski sum computation via Gauss map
 
@@ -60,12 +60,12 @@ game.minkowski = function (rec1, rec2) {
     var inverse_transform_matrix = game.inverse_2d_mat(basis);
 
     var transformed_ver1 = ver1.map(function (e) {
-        return game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, e),
-                            [c1x, c1y]);
+        return game.mul_mat_on_vec(inverse_transform_matrix,
+                                   game.sub_vec(e, [c1x, c1y]));
         }),
         transformed_ver2 = ver2.map(function (e) {
-        return game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, e),
-                            [c1x, c1y]);
+            return game.mul_mat_on_vec(inverse_transform_matrix,
+                                       game.sub_vec(e, [c1x, c1y]));
         });
 
     // transform the center of the second rectangle
@@ -144,8 +144,42 @@ game.minkowski = function (rec1, rec2) {
         ];
     }
 
-    
     var total_pairs = [].concat(pairs, antipodal_pairs, dual_pairs, dual_antipodal_pairs);
+
+    for (var alpha = 0; alpha < total_pairs.length; alpha++) {
+        var pi    = total_pairs[alpha],
+            begin = [],
+            end   = [];
+
+        if (typeof(pi[1][0]) == "number") {
+            begin = game.add_vec(pi[1], pi[2][0]);
+            end   = game.add_vec(pi[1], pi[2][1]);
+
+            begin = game.translateCoordinate(game.add_vec(
+                game.mul_mat_on_vec(basis, begin),
+                [c1x, c1y]));
+            end = game.translateCoordinate(game.add_vec(
+                game.mul_mat_on_vec(basis, end),
+                [c1x, c1y]));
+        } else {
+            begin = game.add_vec(pi[2], pi[1][0]);
+            end   = game.add_vec(pi[2], pi[1][1]);
+            
+            begin = game.translateCoordinate(game.add_vec(
+                game.mul_mat_on_vec(basis, begin),
+                [c1x, c1y]));
+            end = game.translateCoordinate(game.add_vec(
+                game.mul_mat_on_vec(basis, end),
+                [c1x, c1y]));
+       }
+        
+        stroke("green");
+        fill("green");
+        ellipse(begin[0], begin[1], 5, 5);
+        ellipse(end[0], end[1], 5, 5);
+        line(begin[0], begin[1], end[0], end[1]);
+    }
+
     
     var p2 = performance.now();
 

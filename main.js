@@ -25,10 +25,15 @@ function setup () {
                                [20, 20],
                                [0, 20]]});
     game.add_brick({color: "red", vx: 0,
-                    vertices: [[-40, 0],
-                               [-26, 14],
-                               [-40, 28],
-                               [-54, 14]]});
+                    vertices: [[-80, 0],
+                               [-60, 30],
+                               [-90, 50],
+                               [-110, 20]]});
+    // game.add_brick({color: "red", vx: 0,
+    //                 vertices: [[-40, 0],
+    //                            [-26, 14],
+    //                            [-40, 28],
+    //                            [-54, 14]]});
     game.update();
     
     // game.envs.mysize = width/10;
