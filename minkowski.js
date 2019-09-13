@@ -40,7 +40,9 @@ game.minkowski = function (rec1, rec2) {
         ver2 = rec2.vertices;
 
     var c1x = rec1.c_x(),
-        c1y = rec1.c_y();
+        c1y = rec1.c_y(),
+        c2x = rec2.c_x(),
+        c2y = rec2.c_y();
     
     // extract edges
     var edge1 = ver1.map(function (e, i) {
@@ -65,6 +67,10 @@ game.minkowski = function (rec1, rec2) {
         return game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, e),
                             [c1x, c1y]);
         });
+
+    // transform the center of the second rectangle
+    var transformed_c2 = game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, [c2x, c2y]),
+                                      [c1x, c1y]);
 
     var transformed_edge1 = transformed_ver1.map(function (e, i) {
         return [e, transformed_ver1[(i+1) % transformed_ver1.length]];
@@ -120,17 +126,15 @@ game.minkowski = function (rec1, rec2) {
 
     for (var j = 0; j < pairs.length; j++) {
         var pj = pairs[j];
-        // FIXME: this antipodal map is wrong. I shall write a dedicated antipodal map for
-        // this purpose.
-        antipodal_pairs[j] = [game.scalar_mat(-1, pj[0]), game.scalar_vec(-1, pj[1])];
+        antipodal_pairs[j] = [pj[0].map(function (e) {
+            return game.sub_vec(game.scalar_vec(2, transformed_c2), e);}),
+                              game.scalar_vec(-1, pj[1])];
     }
-
-
 
     var total_pairs = [].concat(pairs, antipodal_pairs);
     
     var p2 = performance.now();
 
     console.log("1-2: " + (p2-p0));
-    return total_pairs;
+    return [].concat(transformed_edge2, total_pairs);
 };

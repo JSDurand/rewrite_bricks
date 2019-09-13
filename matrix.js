@@ -191,3 +191,24 @@ game.number_quadrant = function (point) {
 
     return res;
 };
+
+// antipodal map with respect to a set of vertices
+
+game.antipodal_wrt_vertices = function (point, vertices) {
+    var cx  = 0,
+        cy  = 0,
+        len = vertices.length,
+        x   = point[0],
+        y   = point[1];
+
+    for (var i = 0; i < len; i++) {
+        var vi = vertices[i];
+        cx += vi[0];
+        cy += vi[1];
+    }
+
+    cx /= len;
+    cy /= len;
+
+    return [2 * cx - x, 2 * cy - y];
+};
