@@ -192,23 +192,30 @@ game.number_quadrant = function (point) {
     return res;
 };
 
-// antipodal map with respect to a set of vertices
+// equal points
 
-game.antipodal_wrt_vertices = function (point, vertices) {
-    var cx  = 0,
-        cy  = 0,
-        len = vertices.length,
-        x   = point[0],
-        y   = point[1];
+game.point_equal = function (veca, vecb) {
+    return veca[0] === vecb[0] && veca[1] === vecb[1];
+};
 
-    for (var i = 0; i < len; i++) {
-        var vi = vertices[i];
-        cx += vi[0];
-        cy += vi[1];
+// common point
+
+game.common_end_point_of_two_edges = function (edge1, edge2) {
+    // an edge is an array of two points; a point is an array of two numbers
+    var p1 = edge1[0],
+        p2 = edge1[1],
+        p3 = edge2[0],
+        p4 = edge2[1];
+
+    if (game.point_equal(p1, p3)) {
+        return p1;
+    } else if (game.point_equal(p2, p3)) {
+        return p2;
+    } else if (game.point_equal(p1, p4)) {
+        return p1;
+    } else if (game.point_equal(p2, p4)) {
+        return p2;
+    } else {
+        throw("No common points between " + edge1 + " and " + edge2);
     }
-
-    cx /= len;
-    cy /= len;
-
-    return [2 * cx - x, 2 * cy - y];
 };

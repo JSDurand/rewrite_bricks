@@ -86,55 +86,94 @@ game.minkowski = function (rec1, rec2) {
         [game.unit_normal(game.sub_vec(transformed_edge2[0][1], transformed_edge2[0][0])),
          game.unit_normal(game.sub_vec(transformed_edge2[1][1], transformed_edge2[1][0]))];
 
-    // determine the signs
-    // var signs = unit_normal_vectors.map(function (e) {
-    //     return e.map(game.sign);
-    // });
-
-    // determine the corresponding points of rec1
-
-    var min_max_x_y_array = game.min_max_x_y(transformed_ver1);
-    
-    var pairs = [];
+    var pairs                = [],
+        antipodal_pairs      = [],
+        dual_pairs           = [],
+        dual_antipodal_pairs = [];
 
     for (var i = 0; i < unit_normal_vectors.length; i++) {
-        var corrsponding_point = null,
-            number_of_quadrant = game.number_quadrant(unit_normal_vectors[i]);
+        var number_of_quadrant = game.number_quadrant(unit_normal_vectors[i]),
+            corrsponding_point = game.find_corresponding_point(number_of_quadrant, transformed_ver1);
 
-        switch (number_of_quadrant) {
-        case 0:
-            corrsponding_point = [min_max_x_y_array[1], min_max_x_y_array[3]];
-            break;
-        case 1:
-            corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[3]];
-            break;
-        case 2:
-            corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[2]];
-            break;
-        case 3:
-            corrsponding_point = [min_max_x_y_array[1], min_max_x_y_array[2]];
-            break;
-        default:
-            throw("number of quadrant should be between 0 and 3, but it is " + number_of_quadrant);
-            break;
-        };
-        
-        pairs[i] = [transformed_edge2[i], corrsponding_point];
+        pairs[i] = [number_of_quadrant, corrsponding_point, transformed_edge2[i]];
     }
 
-    var antipodal_pairs = [];
-
+    // antipodal pairs
     for (var j = 0; j < pairs.length; j++) {
         var pj = pairs[j];
-        antipodal_pairs[j] = [pj[0].map(function (e) {
-            return game.sub_vec(game.scalar_vec(2, transformed_c2), e);}),
-                              game.scalar_vec(-1, pj[1])];
+
+        antipodal_pairs[j] = [
+            // xor with 3 to obtain the antipodal quadrant
+            pj[0] ^ 3,
+            game.scalar_vec(-1, pj[1]),
+            pj[2].map(function (e) {return game.sub_vec(game.scalar_vec(2, transformed_c2), e);})
+        ];
     }
 
-    var total_pairs = [].concat(pairs, antipodal_pairs);
+    // dual pairs
+    var first_pair                = pairs[0],
+        first_corresponding_point = game.find_corresponding_point(first_pair[0], transformed_ver1),
+        neighbour                 = null,
+        neighbour_edge            = null;
+
+    for (var k = 0; k < 2; k++) {
+        // xor with 1 or 2 to obtain a neighbouring quadrant
+        neighbour       = first_pair[0] ^ (k+1);
+        // find the previously found matching point 
+        neighbour_edge  = [].concat(pairs, antipodal_pairs).find(function (e) {
+            return e[0] === neighbour;
+        })[2];
+
+        dual_pairs[k] = [
+            neighbour,
+            [first_corresponding_point,
+             game.find_corresponding_point(neighbour, transformed_ver1)],
+            game.common_end_point_of_two_edges(neighbour_edge, first_pair[2])
+        ];
+    }
+
+    // dual antipodal pairs
+    for (var l = 0; l < dual_pairs.length; l++) {
+        var pl = dual_pairs[l];
+
+        dual_antipodal_pairs[l] = [
+            // xor with 3 to obtain the antipodal quadrant
+            pl[0] ^ 3,
+            pl[1].map(function (e) {return game.scalar_vec(-1, e);}),
+            game.sub_vec(game.scalar_vec(2, transformed_c2), pl[2])
+        ];
+    }
+
+    
+    var total_pairs = [].concat(pairs, antipodal_pairs, dual_pairs, dual_antipodal_pairs);
     
     var p2 = performance.now();
 
     console.log("1-2: " + (p2-p0));
-    return [].concat(transformed_edge2, total_pairs);
+    return total_pairs;
+};
+
+// find the corresponding point according to the quadrant
+game.find_corresponding_point = function (number_of_quadrant, vertices) {
+    var min_max_x_y_array  = game.min_max_x_y(vertices),
+        corrsponding_point = null;
+
+    switch (number_of_quadrant) {
+    case 0:
+        corrsponding_point = [min_max_x_y_array[1], min_max_x_y_array[3]];
+        break;
+    case 1:
+        corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[3]];
+        break;
+    case 2:
+        corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[2]];
+        break;
+    case 3:
+        corrsponding_point = [min_max_x_y_array[1], min_max_x_y_array[2]];
+        break;
+    default:
+        throw("Number of quadrant should be between 0 and 3, but it is " + number_of_quadrant);
+        break;
+    };
+    return corrsponding_point;
 };
