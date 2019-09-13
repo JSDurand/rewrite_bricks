@@ -81,13 +81,56 @@ game.minkowski = function (rec1, rec2) {
          game.unit_normal(game.sub_vec(transformed_edge2[1][1], transformed_edge2[1][0]))];
 
     // determine the signs
-    var two_pairs = unit_normal_vectors.map(function (e) {
-        return e.map(game.sign);
-    });
+    // var signs = unit_normal_vectors.map(function (e) {
+    //     return e.map(game.sign);
+    // });
 
-    var antipodal_pairs = game.scalar_mat(-1, two_pairs);
+    // determine the corresponding points of rec1
+
+    var min_max_x_y_array = game.min_max_x_y(transformed_ver1);
+    
+    var pairs = [];
+
+    for (var i = 0; i < unit_normal_vectors.length; i++) {
+        var corrsponding_point = null,
+            number_of_quadrant = game.number_quadrant(unit_normal_vectors[i]);
+
+        switch (number_of_quadrant) {
+        case 0:
+            corrsponding_point = [min_max_x_y_array[1], min_max_x_y_array[3]];
+            break;
+        case 1:
+            corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[3]];
+            break;
+        case 2:
+            corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[2]];
+            break;
+        case 3:
+            corrsponding_point = [min_max_x_y_array[1], min_max_x_y_array[2]];
+            break;
+        default:
+            throw("number of quadrant should be between 0 and 3, but it is " + number_of_quadrant);
+            break;
+        };
+        
+        pairs[i] = [transformed_edge2[i], corrsponding_point];
+    }
+
+    var antipodal_pairs = [];
+
+    for (var j = 0; j < pairs.length; j++) {
+        var pj = pairs[j];
+        // FIXME: this antipodal map is wrong. I shall write a dedicated antipodal map for
+        // this purpose.
+        antipodal_pairs[j] = [game.scalar_mat(-1, pj[0]), game.scalar_vec(-1, pj[1])];
+    }
+
+
+
+    var total_pairs = [].concat(pairs, antipodal_pairs);
+    
     var p2 = performance.now();
 
     console.log("1-2: " + (p2-p0));
-    return antipodal_pairs;
+    return total_pairs;
 };

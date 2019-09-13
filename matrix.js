@@ -125,3 +125,69 @@ game.unit_vec = function (v) {
 game.unit_normal = function (v) {
     return game.unit_vec(game.normal_vec(v));
 };
+
+// find min_x, max_x, min_y, and max_y of an array of points
+
+game.min_max_x_y = function (arr) {
+    var min_x = 0,
+        max_x = 0,
+        min_y = 0,
+        max_y = 0;
+
+    for (var i = 0; i < arr.length; i++) {
+        var ai  = arr[i],
+            aix = ai[0],
+            aiy = ai[1];
+        if (aix < min_x) {
+            min_x = aix;
+        }
+        if (aix > max_x) {
+            max_x = aix;
+        }
+        if (aiy < min_y) {
+            min_y = aiy;
+        }
+        if (aiy > max_y) {
+            max_y = aiy;
+        }
+    }
+    return [min_x, max_x, min_y, max_y];
+};
+
+// A special function that numbers the quadrants of a plane. It is like the following. The
+// benefit of numbering this way is that to find the neighbouring quadrants one does
+// bitwise xor with 1 or 2, which might be faster.
+
+//            y
+//            .
+//     |      .   +--+
+//     |      .   |  |
+//     |      .   +--+
+//            .
+// ...........0............ x
+//            .
+//    ---+    .   ----+ 
+//       |    .       | 
+//    ---+    .   +---+ 
+//       |    .   |    
+//    ---+    .   +---- 
+//            .
+
+game.number_quadrant = function (point) {
+    var x   = point[0],
+        y   = point[1],
+        res = 0;
+
+    if (x * y === 0) {
+        return undefined;
+    }
+
+    if (x < 0) {
+        res += 1;
+    }
+    if (y < 0) {
+        res += 2;
+    }
+
+    return res;
+};
