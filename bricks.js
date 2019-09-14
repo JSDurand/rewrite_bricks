@@ -1,4 +1,4 @@
-/* global game stroke fill beginShape endShape vertex  */
+/* global game stroke fill beginShape endShape vertex line */
 
 // implements the bricks
 
@@ -113,13 +113,21 @@ game.add_brick = (params) => {
         },
         draw_obj: function () {
             stroke(this.color);
-            fill(this.color);
-            beginShape();
+            
             for (var i = 0; i < this.vertices.length; i++) {
-                var pi = game.translateCoordinate(vertices[i]);
-                vertex(pi[0], pi[1]);
+                var pi = game.translateCoordinate(this.vertices[i]);
+                var pii = game.translateCoordinate(this.vertices[ (i+1) % this.vertices.length]);
+                line(pi[0], pi[1], pii[0], pii[1]);
             }
-            endShape();
+
+            // fill("black");
+            // beginShape();
+            // for (var i = 0; i < this.vertices.length; i++) {
+            //     var pi = game.translateCoordinate(vertices[i]);
+            //     vertex(pi[0], pi[1]);
+            // }
+            // vertex(game.translateCoordinate(vertices[0])[0], game.translateCoordinate(vertices[0])[1]);
+            // endShape();
         },
     };
 

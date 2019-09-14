@@ -20,20 +20,20 @@ function setup () {
     game.envs.level   = 1;
     textSize(40);
     game.add_brick({color: "blue",
-                    vertices: [[0, 0],
-                               [20, 0],
-                               [20, 20],
-                               [0, 20]]});
+                    vertices: [[-30, -30],
+                               [30, -30],
+                               [30, 30],
+                               [-30, 30]]});
     game.add_brick({color: "red", vx: 0,
                     vertices: [[-80, 0],
                                [-60, 30],
                                [-90, 50],
                                [-110, 20]]});
     // game.add_brick({color: "red", vx: 0,
-    //                 vertices: [[-40, 0],
-    //                            [-26, 14],
-    //                            [-40, 28],
-    //                            [-54, 14]]});
+    //                 vertices: [[5, -25],
+    //                            [25, 5],
+    //                            [-5, 25],
+    //                            [-25, -5]]});
     game.update();
     
     // game.envs.mysize = width/10;

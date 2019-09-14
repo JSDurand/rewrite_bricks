@@ -192,10 +192,10 @@ game.number_quadrant = function (point) {
     return res;
 };
 
-// equal points
+// equal points; this must allow some small error, else it won't work.
 
 game.point_equal = function (veca, vecb) {
-    return veca[0] === vecb[0] && veca[1] === vecb[1];
+    return Math.abs(veca[0] - vecb[0]) < 0.0001 && Math.abs(veca[1] - vecb[1]) < 0.0001;
 };
 
 // common point

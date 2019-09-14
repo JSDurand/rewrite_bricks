@@ -69,8 +69,8 @@ game.minkowski = function (rec1, rec2) {
         });
 
     // transform the center of the second rectangle
-    var transformed_c2 = game.sub_vec(game.mul_mat_on_vec(inverse_transform_matrix, [c2x, c2y]),
-                                      [c1x, c1y]);
+    var transformed_c2 = game.mul_mat_on_vec(inverse_transform_matrix,
+                                             game.sub_vec([c2x, c2y], [c1x, c1y]));
 
     var transformed_edge1 = transformed_ver1.map(function (e, i) {
         return [e, transformed_ver1[(i+1) % transformed_ver1.length]];
@@ -124,12 +124,17 @@ game.minkowski = function (rec1, rec2) {
             return e[0] === neighbour;
         })[2];
 
+        try {
         dual_pairs[k] = [
             neighbour,
             [first_corresponding_point,
              game.find_corresponding_point(neighbour, transformed_ver1)],
             game.common_end_point_of_two_edges(neighbour_edge, first_pair[2])
         ];
+        } catch(error) {
+            console.log(neighbour_edge[1], first_pair[2][0]);
+            throw(error);
+        }
     }
 
     // dual antipodal pairs
@@ -200,13 +205,13 @@ game.find_corresponding_point = function (number_of_quadrant, vertices) {
         corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[3]];
         break;
     case 2:
-        corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[2]];
-        break;
-    case 3:
         corrsponding_point = [min_max_x_y_array[1], min_max_x_y_array[2]];
         break;
+    case 3:
+        corrsponding_point = [min_max_x_y_array[0], min_max_x_y_array[2]];
+        break;
     default:
-        throw("Number of quadrant should be between 0 and 3, but it is " + number_of_quadrant);
+        throw("find_corresponding_point: Number of quadrant should be between 0 and 3, but it is " + number_of_quadrant);
         break;
     };
     return corrsponding_point;
