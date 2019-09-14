@@ -108,3 +108,48 @@ game.collision.statics = (obja, objb) => {
         break;
     }
 };
+
+game.collision.continuous = function (obja, objb) {
+    // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
+    var type_sig = obja.type + 2 * objb.type;
+
+    switch (type_sig) {
+    case 0:
+        // both are rectangles
+
+        // take vertices
+        var vera = obja.vertices(),
+            verb = objb.vertices();
+
+        // transform to edges
+        var edgea = vera.map((e, i) => {
+            return [e, vera[(i+1) % vera.length]];
+        }),
+            edgeb = verb.map((e, i) => {
+            return [e, verb[(i+1) % verb.length]];
+        });
+
+        // First we do a simple bounding sphere test. After that we decide the intervals
+        // to exclude by use of bounding spheres again. Then start by dividing the
+        // interval [0,1] into different sub-intervals in which the Gauss maps do not
+        // change signs. And then on each included interval, compute 8 polynomials, of
+        // degree at most 9, to solve. At each such a root, compute the values of other 7
+        // polynomials and check if they are all <= 0. If so, then that is a collision
+        // time. Finally the collision time is determined as the smallest collision time.
+        return false;
+        
+        break;
+    case 1:
+        // a is rectangle and b is circle
+        break;
+    case 2:
+        // b is rectangle and a is circle
+        break;
+    case 3:
+        // both are circles
+        break;
+    default:
+        console.log("Wrong type signature: it should be 0, 1, 2, or 3, but it is " + type_sig);
+        break;
+    }
+};
