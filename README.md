@@ -9,3 +9,9 @@ point of view is not satisfactory enough.
 # How to play
 
 This is currently at very early stage. Don't expect anything playable for the present.
+
+# Credit
+
+I use the library p5, and the polynomial root finder https://github.com/scijs/durand-kerner.
+
+Thanks to everyone's support. :-)
