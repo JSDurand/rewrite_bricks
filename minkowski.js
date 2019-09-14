@@ -35,7 +35,7 @@ game.gauss.map = function (rectangle) {
 // boundaries of the Minkowski sum as well, but this is not used elsewhere, and might be
 // deleted later on.
 game.minkowski = function (rec1, rec2) {
-    // var p0   = performance.now();
+    var p0   = performance.now();
     var ver1 = rec1.vertices,
         ver2 = rec2.vertices;
 
@@ -82,22 +82,22 @@ game.minkowski = function (rec1, rec2) {
         });
 
     // Now rec1 is axis-aligned and centered at the origin.
-    // Take the unit normals of rec2.
+    // Take the normals of rec2.
 
-    var unit_normal_vectors =
-        [game.unit_normal(game.sub_vec(transformed_edge2[0][1], transformed_edge2[0][0])),
-         game.unit_normal(game.sub_vec(transformed_edge2[1][1], transformed_edge2[1][0]))];
+    var normal_vectors =
+        [game.normal_vec(game.sub_vec(transformed_edge2[0][1], transformed_edge2[0][0])),
+         game.normal_vec(game.sub_vec(transformed_edge2[1][1], transformed_edge2[1][0]))];
 
     var pairs                = [],
         antipodal_pairs      = [],
         dual_pairs           = [],
         dual_antipodal_pairs = [];
 
-    for (var i = 0; i < unit_normal_vectors.length; i++) {
-        var number_of_quadrant = game.number_quadrant(unit_normal_vectors[i]),
+    for (var i = 0; i < normal_vectors.length; i++) {
+        var number_of_quadrant = game.number_quadrant(normal_vectors[i]),
             corrsponding_point = game.find_corresponding_point(number_of_quadrant);
 
-        pairs[i] = [number_of_quadrant, corrsponding_point, i];
+        pairs[i] = [corrsponding_point, i];
     }
 
     // antipodal pairs
@@ -106,9 +106,9 @@ game.minkowski = function (rec1, rec2) {
 
         antipodal_pairs[j] = [
             // xor with 3 to obtain the antipodal quadrant
-            pj[0] ^ 3,
-            (pj[1] + 2) % ver1.length,
-            (pj[2] + 2) % edge2.length
+            // pj[0] ^ 3,
+            (pj[0] + 2) % ver1.length,
+            (pj[1] + 2) % edge2.length
         ];
     }
 
@@ -121,27 +121,27 @@ game.minkowski = function (rec1, rec2) {
  
     for (var k = 0; k < 2; k++) {
         // find a neighbouring arc
-        neighbour      = (((first_pair[1] + (k << 1) -1) % ver1.length) + ver1.length) % ver1.length;
+        neighbour      = (((first_pair[0] + (k << 1) -1) % ver1.length) + ver1.length) % ver1.length;
  
         // find the previously found matching point 
         neighbour_edge = [].concat(pairs, antipodal_pairs).find(function (e) {
-            return e[1] === neighbour;
-        })[2];
+            return e[0] === neighbour;
+        })[1];
 
-        if ((neighbour_edge === 0 && first_pair[2] === 3) ||
-            (neighbour_edge === 3 && first_pair[2] === 0)) {
+        if ((neighbour_edge === 0 && first_pair[1] === 3) ||
+            (neighbour_edge === 3 && first_pair[1] === 0)) {
             common_point = 0;
         } else {
-            common_point = Math.max(neighbour_edge, first_pair[2]);
+            common_point = Math.max(neighbour_edge, first_pair[1]);
         }
 
         if (k === 0) {
             new_edge = neighbour;
         } else {
-            new_edge = first_pair[1];
+            new_edge = first_pair[0];
         }
         dual_pairs[k] = [
-            neighbour,
+            // neighbour,
             new_edge,
             common_point
         ];
@@ -149,13 +149,13 @@ game.minkowski = function (rec1, rec2) {
 
     // dual antipodal pairs
     for (var l = 0; l < dual_pairs.length; l++) {
-        var pl             = dual_pairs[l];
+        var pl = dual_pairs[l];
 
         dual_antipodal_pairs[l] = [
             // xor with 3 to obtain the antipodal quadrant
-            pl[0] ^ 3,
-            (pl[1] + 2) % edge1.length,
-            (pl[2] + 2) % ver2.length,
+            // pl[0] ^ 3,
+            (pl[0] + 2) % edge1.length,
+            (pl[1] + 2) % ver2.length,
         ];
     }
 
@@ -170,12 +170,12 @@ game.minkowski = function (rec1, rec2) {
 
         if (alpha >= 4) { // the first four are pairs and antipodal pairs
             stroke("green");
-            edge  = edge1[pi[1]];
-            point = ver2[pi[2]];
+            edge  = edge1[pi[0]];
+            point = ver2[pi[1]];
         } else {
             stroke("yellow");
-            point = ver1[pi[1]];
-            edge  = edge2[pi[2]];
+            point = ver1[pi[0]];
+            edge  = edge2[pi[1]];
         }
 
         begin = game.translateCoordinate(game.add_vec(point, edge[0]));
@@ -186,9 +186,10 @@ game.minkowski = function (rec1, rec2) {
         line(begin[0], begin[1], end[0], end[1]);
     }
     
-    // var p2 = performance.now();
+    var p2 = performance.now();
 
     // console.log("1-2: " + (p2-p0));
+    // return p2-p0;
     return total_pairs;
 };
 
