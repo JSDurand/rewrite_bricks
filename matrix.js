@@ -158,44 +158,58 @@ game.min_max_x_y = function (arr) {
 // benefit of numbering this way is that to find the neighbouring quadrants one does
 // bitwise xor with 1 or 2, which might be faster.
 
-//            y
-//            .
-//     |      .   +--+
-//     |      .   |  |
-//     |      .   +--+
-//            .
-// ...........0............ x
-//            .
-//    ---+    .   ----+ 
-//       |    .       | 
-//    ---+    .   +---+ 
-//       |    .   |    
-//    ---+    .   +---- 
-//            .
+//             5
+//             y
+//             .
+//      |      .   +--+
+//      |      .   |  |
+//      |      .   +--+
+//             .
+// 6...........8............ x  4
+//             .
+//     ---+    .   ----+ 
+//        |    .       | 
+//     ---+    .   +---+ 
+//        |    .   |    
+//     ---+    .   +---- 
+//             .
+//             7
 
 game.number_quadrant = function (point) {
     var x   = point[0],
         y   = point[1],
         res = 0;
 
-    if (x * y === 0) {
-        return undefined;
+    if (x === 0 && y === 0) {
+        res = 8;
+    } else if (x * y === 0) {
+        if (x > 0) {
+            res = 4;
+        }
+        if (x < 0) {
+            res = 6;
+        }
+        if (y > 0) {
+            res = 5;
+        }
+        if (y < 0) {
+            res = 7;
+        }
+    } else {
+        if (x < 0) {
+            res += 1;
+        }
+        if (y < 0) {
+            res += 2;
+        }
     }
-
-    if (x < 0) {
-        res += 1;
-    }
-    if (y < 0) {
-        res += 2;
-    }
-
     return res;
 };
 
-// equal points; this must allow some small error, else it won't work.
+// equal points
 
 game.point_equal = function (veca, vecb) {
-    return Math.abs(veca[0] - vecb[0]) < 0.0001 && Math.abs(veca[1] - vecb[1]) < 0.0001;
+    return veca[0] === vecb[0] && veca[1] === vecb[1];
 };
 
 // common point

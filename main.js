@@ -20,15 +20,15 @@ function setup () {
     game.envs.level   = 1;
     textSize(40);
     game.add_brick({color: "blue",
-                    vertices: [[-30, -30],
-                               [30, -30],
-                               [30, 30],
-                               [-30, 30]]});
+                    vertices: [[-40, -40],
+                               [40, -40],
+                               [40, 40],
+                               [-40, 40]]});
     game.add_brick({color: "red", vx: 0,
-                    vertices: [[-80, 0],
-                               [-60, 30],
-                               [-90, 50],
-                               [-110, 20]]});
+                    vertices: [[20, 100],
+                               [40, 130],
+                               [10, 150],
+                               [-10, 120]]});
     // game.add_brick({color: "red", vx: 0,
     //                 vertices: [[5, -25],
     //                            [25, 5],
