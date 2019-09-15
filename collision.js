@@ -133,9 +133,11 @@ game.collision.continuous = function (obja, objb) {
         // to exclude by use of bounding spheres again. Then start by dividing the
         // interval [0,1] into different sub-intervals in which the Gauss maps do not
         // change signs. And then on each included interval, compute 8 polynomials, of
-        // degree at most 9, to solve. At each such a root, compute the values of other 7
+        // degree at most 5, to solve. At each such a root, compute the values of other 7
         // polynomials and check if they are all <= 0. If so, then that is a collision
-        // time. Finally the collision time is determined as the smallest collision time.
+        // time. Finally the collision time is determined as the smallest collision time,
+        // so we may proceed from the smallest interval forward, until we reach a
+        // collision time, or conclude there is no collision.
         return false;
         
         break;
