@@ -1,4 +1,4 @@
-/* global game */
+/* global game performance */
 
 // detect the collision between polygons
 
@@ -66,15 +66,15 @@ game.collision.two_edges = (ea, eb) => {
 
 game.collision.statics = (obja, objb) => {
     // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
-    var type_sig = obja.type + 2 * objb.type;
+    var type_sig = obja.type + (objb.type << 1);
 
     switch (type_sig) {
     case 0:
         // both are rectangles
 
         // take vertices
-        var vera = obja.vertices(),
-            verb = objb.vertices();
+        var vera = obja.vertices,
+            verb = objb.vertices;
 
         // transform to edges
         var edgea = vera.map( (e, i) => {
@@ -110,23 +110,24 @@ game.collision.statics = (obja, objb) => {
 };
 
 game.collision.continuous = function (obja, objb) {
+    // var p0   = performance.now();
     // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
-    var type_sig = obja.type + 2 * objb.type;
+    var type_sig = obja.type + (objb.type << 1);
 
     switch (type_sig) {
     case 0:
         // both are rectangles
 
         // take vertices
-        var vera = obja.vertices(),
-            verb = objb.vertices();
+        var ver1 = obja.vertices,
+            ver2 = objb.vertices;
 
         // transform to edges
-        var edgea = vera.map((e, i) => {
-            return [e, vera[(i+1) % vera.length]];
+        var edgea = ver1.map((e, i) => {
+            return [e, ver1[(i+1) % ver1.length]];
         }),
-            edgeb = verb.map((e, i) => {
-            return [e, verb[(i+1) % verb.length]];
+            edgeb = ver2.map((e, i) => {
+            return [e, ver2[(i+1) % ver2.length]];
         });
 
         // First we do a simple bounding sphere test. After that we decide the intervals
@@ -138,7 +139,58 @@ game.collision.continuous = function (obja, objb) {
         // time. Finally the collision time is determined as the smallest collision time,
         // so we may proceed from the smallest interval forward, until we reach a
         // collision time, or conclude there is no collision.
-        return false;
+
+        // centers
+        var c1 = [obja.c_x(), obja.c_y()],
+            c2 = [objb.c_x(), objb.c_y()];
+
+        // velocities
+        var v1 = [obja.vx, obja.vy],
+            v2 = [objb.vx, objb.vy],
+            w1 = obja.w,
+            w2 = objb.w;
+
+        // radius
+        var r1 = game.len_vec(game.sub_vec(ver1[0], c1)),
+            r2 = game.len_vec(game.sub_vec(ver2[0], c2));
+
+        // bounding sphere test
+        if (game.len_vec(game.sub_vec(c1, c2)) > r1 + r2 + game.len_vec(game.sub_vec(v1, v2))) {
+            return false;
+        }
+
+        // calculate excluding points
+        var exclude_point1 = null,
+            exclude_point2 = null,
+            relative_c     = game.sub_vec(c2, c1),
+            relative_v     = game.sub_vec(v2, v1),
+            discriminant   = Math.pow(game.dot_prod(relative_c, relative_v), 2) - game.sq_len_vec(relative_v) * (game.sq_len_vec(relative_c) - Math.pow(r1 + r2, 2));
+
+        if (discriminant < 0) {
+            return false;
+        } else {
+            exclude_point1 = (-1 * game.dot_prod(relative_c, relative_v) - Math.sqrt(discriminant)) / game.sq_len_vec(relative_v); 
+            exclude_point2 = (-1 * game.dot_prod(relative_c, relative_v) + Math.sqrt(discriminant)) / game.sq_len_vec(relative_v); 
+        }
+
+        // number of intervals
+        var number_of_intervals = Math.floor((w2 - w1) / 180);
+
+        if (number_of_intervals >= 0) {
+            number_of_intervals += 1;
+        }
+
+        // loop each subinterval
+
+        for (var n = 0; n < Math.abs(number_of_intervals); n++) {
+            // do this
+            
+        }
+
+        
+        // var p2 = performance.now();
+        // return p2-p0;
+        // return [exclude_point1, exclude_point2];
         
         break;
     case 1:

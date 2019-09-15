@@ -110,6 +110,10 @@ game.det_for_vec = function (v1, v2) {
     return v1[0] * v2[1] - v1[1] * v2[0];
 };
 
+game.sq_len_vec = function (v) {
+    return Math.pow(v[0], 2) + Math.pow(v[1], 2);
+};
+
 game.len_vec = function (v) {
     return Math.sqrt(Math.pow(v[0], 2) + Math.pow(v[1], 2));
 };

@@ -21,6 +21,7 @@ game.add_brick = (params) => {
     }
 
     var brick = {
+        type    : 0,
         vertices: vertices,
         vx      : vx,
         vy      : vy,
