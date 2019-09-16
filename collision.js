@@ -174,22 +174,42 @@ game.collision.continuous = function (obja, objb) {
         }
 
         // number of intervals
-        var number_of_intervals = Math.floor((w2 - w1) / 180);
-
-        if (number_of_intervals >= 0) {
-            number_of_intervals += 1;
+        var angle = game.angle_between_vectors(
+            game.sub_vec(edgea[0][1], edgea[0][0]),
+            game.sub_vec(edgeb[0][1], edgeb[0][0])),
+            abs_w = Math.abs(w2 - w1);
+        
+        var number_of_intervals;
+        
+        if ((w2 - w1) > 0) {
+            number_of_intervals = Math.floor((abs_w + angle) / 90) - Math.ceil(angle / 90) + 2;
+        } else {
+            number_of_intervals = Math.floor(angle / 90) - Math.ceil((abs_w + angle) / 90) + 2;
         }
 
         // loop each subinterval
 
-        for (var n = 0; n < Math.abs(number_of_intervals); n++) {
-            // do this
-            
-        }
+        var m = null,
+            t = null;
 
+        for (var n = 0; n < number_of_intervals; n++) {
+            // the multiple of 90 is denoted as m
+
+            if ((w2 - w1) > 0) {
+                m = Math.ceil(angle / 90) + n;
+                t = (m * 90 + angle + 45) / (w2 - w1);
+            } else if (w1 === w2) {
+                t = 0.5;
+            } else {
+                m = Math.ceil((abs_w + angle) / 90) + n;
+                t = (m * 90 + angle + 45) / (w2 - w1);
+            }
+            // do this
+        }
         
         // var p2 = performance.now();
         // return p2-p0;
+        return "t: " + ((m * 90 - angle) / (w2 - w1));
         // return [exclude_point1, exclude_point2];
         
         break;

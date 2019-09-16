@@ -237,3 +237,11 @@ game.common_end_point_of_two_edges = function (edge1, edge2) {
         throw("No common points between " + edge1 + " and " + edge2);
     }
 };
+
+// find the angle between two vectors, in degrees
+
+game.angle_between_vectors = function (v1, v2) {
+    var dot_prod_quotient = Math.pow(game.dot_prod(v1, v2), 2) / (game.sq_len_vec(v1) * game.sq_len_vec(v2)),
+        angle             = Math.acos(Math.sqrt(dot_prod_quotient));
+    return angle * 180 / Math.PI;
+};
