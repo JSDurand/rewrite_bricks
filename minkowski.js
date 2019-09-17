@@ -72,6 +72,17 @@ game.minkowski = function (rec1, rec2) {
         var number_of_quadrant = game.number_quadrant(normal_vectors[i]),
             corrsponding_point = game.find_corresponding_point(number_of_quadrant);
 
+        // If the rectangles are parallel, then return undefined so that later we might
+        // identify this situation and handle these cases separately. Notice that in
+        // theory this situation should not occur, since we exclude at the beginning this
+        // situaiton by dividing [0, 1] into subintervals. But in practice this will still
+        // happen as we also have to consider the case that the rectangles are not
+        // rotating, in which case it can be the case that the rectangles are parallel and
+        // there is no interval division to avoid this situation.
+        if (typeof(corrsponding_point) === "undefined") {
+            return undefined;
+        }
+        
         pairs[i] = [corrsponding_point, i];
 
         // antipodal pairs: since we number the vertices and edges continuously, to find the
@@ -181,7 +192,8 @@ game.find_corresponding_point = function (number_of_quadrant) {
         corrsponding_point = 0;
         break;
     default:
-        throw("find_corresponding_point: Number of quadrant should be between 0 and 3, but it is " + number_of_quadrant);
+        corrsponding_point = undefined;
+        // throw("find_corresponding_point: Number of quadrant should be between 0 and 3, but it is " + number_of_quadrant);
         break;
     };
     return corrsponding_point;

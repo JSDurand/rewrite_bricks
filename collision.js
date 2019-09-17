@@ -123,10 +123,10 @@ game.collision.continuous = function (obja, objb) {
             ver2 = objb.vertices;
 
         // transform to edges
-        var edgea = ver1.map((e, i) => {
+        var edge1 = ver1.map((e, i) => {
             return [e, ver1[(i+1) % ver1.length]];
         }),
-            edgeb = ver2.map((e, i) => {
+            edge2 = ver2.map((e, i) => {
             return [e, ver2[(i+1) % ver2.length]];
         });
 
@@ -175,8 +175,8 @@ game.collision.continuous = function (obja, objb) {
 
         // number of intervals
         var angle = game.angle_between_vectors(
-            game.sub_vec(edgea[0][1], edgea[0][0]),
-            game.sub_vec(edgeb[0][1], edgeb[0][0])),
+            game.sub_vec(edge1[0][1], edge1[0][0]),
+            game.sub_vec(edge2[0][1], edge2[0][0])),
             abs_w = Math.abs(w2 - w1);
         
         var number_of_intervals;
@@ -189,22 +189,59 @@ game.collision.continuous = function (obja, objb) {
 
         // loop each subinterval
 
-        var m = null,
-            t = null;
+        var m   = null,
+            t   = null,
+            beg = null,
+            end = null;
 
         for (var n = 0; n < number_of_intervals; n++) {
             // the multiple of 90 is denoted as m
 
             if ((w2 - w1) > 0) {
-                m = Math.ceil(angle / 90) + n;
-                t = (m * 90 + angle + 45) / (w2 - w1);
+                m   = Math.ceil(angle / 90) + n;
+                t   = (m * 90 + angle + 45) / (w2 - w1);
+                beg = t - 45 / (w2 - w1);
+                end = t + 45 / (w2 - w1);
             } else if (w1 === w2) {
-                t = 0.5;
+                t   = 0;
+                beg = 0;
+                end = 1;
             } else {
-                m = Math.ceil((abs_w + angle) / 90) + n;
-                t = (m * 90 + angle + 45) / (w2 - w1);
+                m   = Math.ceil((abs_w + angle) / 90) + n;
+                t   = (m * 90 + angle + 45) / (w2 - w1);
+                beg = t - 45 / (w2 - w1);
+                end = t + 45 / (w2 - w1);
             }
-            // do this
+
+            if (beg < exclude_point1 && end < exclude_point1) {
+                return false;
+            }
+            if (beg > exclude_point2 && end > exclude_point2) {
+                return false;
+            }
+            
+            var stepped_rec1 = game.step_time(obja, t),
+                stepped_rec2 = game.step_time(objb, t);
+
+            var pair12 = game.minkowski(stepped_rec1, stepped_rec2),
+                pair21 = game.minkowski(stepped_rec2, stepped_rec1);
+
+            // TODO: consider the case pair12 is undefined, when the rectangles are not
+            // rotating, or rotating at the same angular velocity.
+
+            for (var index_of_pairs = 0; index_of_pairs < pair12.length / 2; index_of_pairs++) {
+                // we only consider the last half of the pairs, since the first half of
+                // the equations are too difficult to solve: the polynomials are of
+                // degrees too high. Note that here the there are 8 pairs in pair12.
+                var last_half_index = index_of_pairs + pair12.length / 2,
+                    // This is an array of two numbers.
+                    the_pair        = pair12[last_half_index];
+
+                // TODO: Construct the polynomial and exclude the leading zeroes, as that
+                // could cause the root-finding algorithm to error out. After that check
+                // three conditions. Finally do the same thing for pair21.
+            }
+
         }
         
         // var p2 = performance.now();
@@ -226,4 +263,114 @@ game.collision.continuous = function (obja, objb) {
         console.log("Wrong type signature: it should be 0, 1, 2, or 3, but it is " + type_sig);
         break;
     }
+};
+
+game.step_time = function (rec, t) {
+    if (t === 0) {
+        return rec;
+    }
+
+    var stepped_rec   = null;
+
+    var vx            = rec.vx,
+        vy            = rec.vy,
+        w             = rec.w * Math.PI / 180,
+        cx            = rec.c_x(),
+        cy            = rec.c_y();
+
+    var cos           = Math.cos(w * t),
+        sin           = Math.sin(w * t),
+        vxt           = vx * t,
+        vyt           = vy * t;
+
+    var motion_matrix = [[cos, -1 * sin, -1 * cos * cx + sin * cy + cx + vxt],
+                         [sin, cos     , -1 * sin * cx - cos * cy + cy + vyt],
+                         [0  , 0       , 1]];
+
+    stepped_rec = game.apply_matrix(motion_matrix, rec);
+
+    return stepped_rec;
+};
+
+game.apply_matrix = function (matrix, rec) {
+    var vertices = rec.vertices,
+        new_rec  = game.clone(rec),
+        new_vec  = [];
+
+    for (var i = 0; i < vertices.length; i++) {
+        new_vec[i] = game.mul_mat_on_vec(matrix, [].concat(vertices[i], [1])).slice(0, 2);
+    }
+
+    new_rec["vertices"] = new_vec;
+
+    return new_rec;
+};
+
+// transform the coordinates so that rec1 is axis-aligned and centered at the origin.
+game.transform_Coord = function (rec1, rec2) {
+
+    // take vertices
+    var ver1 = rec1.vertices,
+        ver2 = rec2.vertices;
+
+    // transform to edges
+    var edge1 = ver1.map((e, i) => {
+        return [e, ver1[(i+1) % ver1.length]];
+    }),
+        edge2 = ver2.map((e, i) => {
+            return [e, ver2[(i+1) % ver2.length]];
+        });
+
+    // centers
+    var c1 = [rec1.c_x(), rec1.c_y()],
+        c2 = [rec2.c_x(), rec2.c_y()];
+
+    // Transform the basis so that rec1 is axis-aligned and centered at the origin. Take
+    // the first two edges as the (orthogonal) basis
+    var basis_first  = game.unit_vec(game.sub_vec(edge1[0][1],edge1[0][0])),
+        basis_second = game.unit_vec(game.sub_vec(edge1[1][1], edge1[1][0])),
+        // Here a transpose is needed, else the order of multiplication should be changed.
+        basis        = [[basis_first[0], basis_second[0]],
+                        [basis_first[1], basis_second[1]]];
+
+    var inverse_transform_matrix = game.inverse_2d_mat(basis);
+
+    var transformed_ver1 = ver1.map(function (e) {
+        return game.mul_mat_on_vec(inverse_transform_matrix,
+                                   game.sub_vec(e, [c1[0], c1[1]]));
+    }),
+        transformed_ver2 = ver2.map(function (e) {
+            return game.mul_mat_on_vec(inverse_transform_matrix,
+                                       game.sub_vec(e, [c1[0], c1[1]]));
+        });
+
+    // transformed edges
+    var transformed_edge1 = transformed_ver1.map(function (e, i) {
+        return [e, transformed_ver1[(i+1) % transformed_ver1.length]];
+    }),
+        transformed_edge2 = transformed_ver2.map(function (e, i) {
+            return [e, transformed_ver2[(i+1) % transformed_ver2.length]];
+        });
+
+    // transformed center of the second rectangle
+    var transformed_c2 = game.mul_mat_on_vec(inverse_transform_matrix,
+                                             game.sub_vec([c2[0], c2[1]], [c1[0], c1[1]]));
+
+    // Now rec1 is axis-aligned and centered at the origin.
+    // Take the normals of rec2.
+
+    var normal_vectors =
+        [game.normal_vec(game.sub_vec(transformed_edge2[0][1], transformed_edge2[0][0])),
+         game.normal_vec(game.sub_vec(transformed_edge2[1][1], transformed_edge2[1][0]))];
+
+    return {
+        ver1: transformed_ver1,
+        ver2: transformed_ver2,
+        edge1: transformed_edge1,
+        edge2: transformed_edge2,
+        basis: basis,
+        inverse_transform_matrix: inverse_transform_matrix,
+        center: transformed_c2,
+        normals: normal_vectors,
+    };
 };
