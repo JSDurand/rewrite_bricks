@@ -112,7 +112,8 @@ game.collision.statics = (obja, objb) => {
 game.collision.continuous = function (obja, objb) {
     // var p0   = performance.now();
     // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
-    var type_sig = obja.type + (objb.type << 1);
+    var type_sig = obja.type + (objb.type << 1),
+        epsilon  = 0.0001;
 
     switch (type_sig) {
     case 0:
@@ -189,12 +190,18 @@ game.collision.continuous = function (obja, objb) {
 
         // loop each subinterval
 
+        // FIXME: some calculations are wrong here.
+
         var m   = null,
             t   = null,
             beg = null,
             end = null;
 
+        console.log("number of intervals: " + number_of_intervals);
         for (var n = 0; n < number_of_intervals; n++) {
+
+            console.log("The " + (n + 1) + "-th interval");
+
             // the multiple of 90 is denoted as m
 
             if ((w2 - w1) > 0) {
@@ -213,11 +220,17 @@ game.collision.continuous = function (obja, objb) {
                 end = t + 45 / (w2 - w1);
             }
 
+            console.log("m = " + m);
+            console.log("angle = " + angle);
+            console.log("t = " + t);
+
             if (beg < exclude_point1 && end < exclude_point1) {
-                return false;
+                console.log("BST: beg = " + beg + " and end = " + end);
+                continue;
             }
             if (beg > exclude_point2 && end > exclude_point2) {
-                return false;
+                console.log("BST: beg = " + beg + " and end = " + end);
+                continue;
             }
             
             var stepped_rec1 = game.step_time(obja, t),
@@ -272,17 +285,219 @@ game.collision.continuous = function (obja, objb) {
 
                 polynomial = game.trim_last_zeroes([degree0, degree1, degree2, degree3, degree4]);
                 roots      = findRoots(polynomial);
+
+                console.log("first roots: ");
+                console.log(roots);
                 
-                // TODO: Check three conditions. Finally do the same thing for pair21.
-                return roots;
+                for (var root_index = 0; root_index < roots[1].length; root_index++) {
+                    if (Math.abs(roots[1][root_index]) < epsilon) {
+                        // this could be a real root. Now check three / two conditions
+                        var possible_time = roots[0][root_index],
+                            cost          = Math.cos(relative_w * possible_time),
+                            sint          = Math.sin(relative_w * possible_time),
+                            cos_plum      = Math.cos(-1 * w1 * possible_time),
+                            sin_plum      = Math.sin(-1 * w1 * possible_time);
+
+                        if (possible_time < 0) {
+                            console.log("found one negative root: " + possible_time);
+                            continue;
+                        }
+
+                        stepped_rec1 = game.step_time(obja, possible_time);
+                        stepped_rec2 = game.step_time(objb, possible_time);
+                        // First it should lie on the boundary line. Let us suppose that
+                        // the numerical root finding is accurate enough for now. Change
+                        // this depending upon the performances
+
+                        var quantity_to_equal_zero = null;
+                        if (the_pair[1] % 2 === 0) {
+                            quantity_to_equal_zero = point[0] * sint + point[1] * cost - center[0] * sint - center[1] * cost + sin_plum * (center[0] + possible_time * relative_v[0]) + cos_plum * (center[1] + possible_time * relative_v[1]) + edge_start[1];
+                        } else {
+                            quantity_to_equal_zero = point[0] * cost - point[1] * sint - center[0] * cost + center[0] * sint + cos_plum * (center[0] + possible_time * relative_v[0]) - sin_plum * (center[1] + possible_time * relative_v[1]) + edge_start[0];
+                        }
+
+                        if (Math.abs(quantity_to_equal_zero) >= epsilon) {
+                            // this is probably a mistake in finding the roots; just ignore it.
+                            console.log("Mistaken root: " + possible_time);
+                            continue;
+                        }
+
+                        // It is unfortunate to use a magic number 2 here: there are two
+                        // neighbours equations to consider.
+                        // det => determination
+                        var det = true;
+                        for (var neighbour_num = 0; neighbour_num < 2; neighbour_num++) {
+                            var neighbour      = (the_pair[0] - neighbour_num + ver1.length) % ver1.length,
+                                neighbour_pair = pair12.find(function(item) {
+                                    return item[1] === neighbour;
+                                });
+
+                            // First transform the rec1 to be axis-aligned and centered at
+                            // the origin, and extract useful information.
+                            
+                            var transformed_objs       = game.transform_Coord(obja, objb),
+                                transformed_normal     = transformed_objs.normals,
+                                transformed_center     = transformed_objs.center,
+                                transformed_edge_start = transformed_objs.edge2[neighbour_pair[1]][0],
+                                transformed_point      = transformed_objs.ver1[neighbour_pair[0]];
+
+                            var moved_normal = [transformed_normal[0] * cost - transformed_normal[1] * sint,
+                                                  transformed_normal[0] * sint + transformed_normal[1] * cost],
+                                moved_thing  = [
+                                    transformed_edge_start[0] * cost - transformed_edge_start[1] * sint - transformed_center[0] * cost + transformed_center[1] * sint + cos_plum * (transformed_center[0] + possible_time * relative_v[0]) - sin_plum * (transformed_center[1] + possible_time * relative_v[1]) + transformed_point[0],
+                                    transformed_edge_start[0] * sint + transformed_edge_start[1] * cost - transformed_center[0] * sint - transformed_center[1] * cost + sin_plum * (transformed_center[0] + possible_time * relative_v[0]) + cos_plum * (transformed_center[1] + possible_time * relative_v[1]) + transformed_point[1]
+                                ];
+
+                            if (game.dot_prod(moved_normal, moved_thing) > 0) {
+                                det = false;
+                            }
+                        }
+
+                        if (!det) {
+                            console.log("Found one root on the line but not in the interior: " + possible_time);
+                            continue;
+                        }
+
+                        // if the loop goes here, then it might be a collision time.
+                        console.log("roots index = " + root_index);
+                        return possible_time;
+                    }
+                }
+
+                
+                // return roots;
             }
 
+            // TODO: Finally do the same thing for pair21.
+            center = [stepped_rec2.c_x(), stepped_rec2.c_y()];
+            
+            for (var index_of_pairs = 0; index_of_pairs < pair21.length / 2; index_of_pairs++) {
+                // we only consider the last half of the pairs, since the first half of
+                // the equations are too difficult to solve: the polynomials are of
+                // too high degrees. Note that here the there are 8 pairs in pair12, but
+                // we only consider the last 4 of them.
+                var last_half_index = index_of_pairs + pair21.length / 2,
+                    // This is an array of two numbers.
+                    the_pair        = pair21[last_half_index];
+
+                var degree0 = 0,
+                    degree1 = 0,
+                    degree2 = 0,
+                    degree3 = 0,
+                    degree4 = 0;
+
+                // some constants
+                var point      = stepped_rec1.vertices[the_pair[0]],
+                    edge_start = stepped_rec2.vertices[the_pair[1]],
+                    relative_w = w1 - w2;
+                
+                relative_v = game.sub_vec(v1, v2);
+
+                if (the_pair[1] % 2 === 0) {
+                    degree0 = point[1] + edge_start[1];
+                    degree1 = relative_w * (point[0] - center[0]) - w2 * center[0] + relative_v[1];
+                    degree2 = (center[1] - point[1]) * relative_w * relative_w / 2 - w2 * relative_v[0] - w2 * w2 * center[1] / 2;
+                    degree3 = (center[0] - point[0]) * Math.pow(relative_w, 3) / 6 + Math.pow(w2, 3) * center[0] / 6 - Math.pow(w2, 2) * relative_v[1] / 2;
+                    degree4 = Math.pow(w2, 3) * relative_v[0] / 6;
+                } else {
+                    degree0 = point[0] + edge_start[0];
+                    degree1 = relative_w * (point[1] - center[1]) + w2 * center[1] + relative_v[0];
+                    degree2 = (center[0] - point[0]) * relative_w * relative_w / 2 + w2 * relative_v[1] - w2 * w2 * center[0] / 2;
+                    degree3 = (point[1] - center[1]) * Math.pow(relative_w, 3) / 6 - Math.pow(w2, 3) * center[1] / 6 - Math.pow(w2, 2) * relative_v[0] / 2;
+                    degree4 = -1 * Math.pow(w2, 3) * relative_v[1] / 6;
+               }
+
+                polynomial = game.trim_last_zeroes([degree0, degree1, degree2, degree3, degree4]);
+                roots      = findRoots(polynomial);
+
+                console.log("second roots: ");
+                console.log(roots);
+                
+                for (var root_index = 0; root_index < roots[1].length; root_index++) {
+                    if (Math.abs(roots[1][root_index]) < epsilon) {
+                        // this could be a real root. Now check three / two conditions
+                            possible_time = roots[0][root_index];
+                            cost          = Math.cos(relative_w * possible_time);
+                            sint          = Math.sin(relative_w * possible_time);
+                            cos_plum      = Math.cos(-1 * w2 * possible_time);
+                            sin_plum      = Math.sin(-1 * w2 * possible_time);
+
+                        if (possible_time < 0) {
+                            continue;
+                        }
+
+                        stepped_rec1 = game.step_time(obja, possible_time);
+                        stepped_rec2 = game.step_time(objb, possible_time);
+
+                        // First it should lie on the boundary line. Let us suppose that
+                        // the numerical root finding is accurate enough for now. Change
+                        // this depending upon the performances
+
+                        var quantity_to_equal_zero = null;
+                        if (the_pair[1] % 2 === 0) {
+                            quantity_to_equal_zero = point[0] * sint + point[1] * cost - center[0] * sint - center[1] * cost + sin_plum * (center[0] + possible_time * relative_v[0]) + cos_plum * (center[1] + possible_time * relative_v[1]) + edge_start[1];
+                        } else {
+                            quantity_to_equal_zero = point[0] * cost - point[1] * sint - center[0] * cost + center[0] * sint + cos_plum * (center[0] + possible_time * relative_v[0]) - sin_plum * (center[1] + possible_time * relative_v[1]) + edge_start[0];
+                        }
+
+                        if (Math.abs(quantity_to_equal_zero) >= epsilon) {
+                            // this is probably a mistake in finding the roots; just ignore it.
+                            console.log("Mistaken root: " + possible_time);
+                            continue;
+                        }
+
+                        // It is unfortunate to use a magic number 2 here: there are two
+                        // neighbours equations to consider.
+                        // det => determination
+                        var det = true;
+                        for (var neighbour_num = 0; neighbour_num < 2; neighbour_num++) {
+                            var neighbour      = (the_pair[0] - neighbour_num + ver2.length) % ver2.length,
+                                neighbour_pair = pair21.find(function(item) {
+                                    return item[1] === neighbour;
+                                });
+
+                            // TODO: Check two conditions. Finally do the same thing for pair21.
+
+                            // First transform the rec1 to be axis-aligned and centered at
+                            // the origin, and extract useful information.
+                            
+                            var transformed_objs       = game.transform_Coord(objb, obja),
+                                transformed_normal     = transformed_objs.normals,
+                                transformed_center     = transformed_objs.center,
+                                transformed_edge_start = transformed_objs.edge1[neighbour_pair[1]][0],
+                                transformed_point      = transformed_objs.ver2[neighbour_pair[0]];
+
+                            var moved_normal = [transformed_normal[0] * cost - transformed_normal[1] * sint,
+                                                  transformed_normal[0] * sint + transformed_normal[1] * cost],
+                                moved_thing  = [
+                                    transformed_edge_start[0] * cost - transformed_edge_start[1] * sint - transformed_center[0] * cost + transformed_center[1] * sint + cos_plum * (transformed_center[0] + possible_time * relative_v[0]) - sin_plum * (transformed_center[1] + possible_time * relative_v[1]) + transformed_point[0],
+                                    transformed_edge_start[0] * sint + transformed_edge_start[1] * cost - transformed_center[0] * sint - transformed_center[1] * cost + sin_plum * (transformed_center[0] + possible_time * relative_v[0]) + cos_plum * (transformed_center[1] + possible_time * relative_v[1]) + transformed_point[1]
+                                ];
+
+                            if (game.dot_prod(moved_normal, moved_thing) > 0) {
+                                det = false;
+                            }
+                        }
+
+                        if (!det) {
+                            console.log("Found one root on the line but not in the interior: " + possible_time);
+                            continue;
+                        }
+
+                        // if the loop goes here, then it might be a collision time.
+                        return possible_time;
+                    }
+                }
+
+                
+                // return roots;
+            }
         }
         
         // var p2 = performance.now();
         // return p2-p0;
         // return "t: " + ((m * 90 - angle) / (w2 - w1));
-        return pair12;
+        return false;
         
         break;
     case 1:
