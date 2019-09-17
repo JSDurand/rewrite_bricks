@@ -1,4 +1,4 @@
-/* global game performance */
+/* global game performance findRoots */
 
 // detect the collision between polygons
 
@@ -226,28 +226,63 @@ game.collision.continuous = function (obja, objb) {
             var pair12 = game.minkowski(stepped_rec1, stepped_rec2),
                 pair21 = game.minkowski(stepped_rec2, stepped_rec1);
 
-            // TODO: consider the case pair12 is undefined, when the rectangles are not
-            // rotating, or rotating at the same angular velocity.
+            if (typeof(pair12) === "undefined") {
+                return game.collision.continuous_parallel(obja, objb);
+            }
+            
+            var center     = [stepped_rec1.c_x(), stepped_rec1.c_y()],
+                polynomial = [],
+                roots      = [];
 
             for (var index_of_pairs = 0; index_of_pairs < pair12.length / 2; index_of_pairs++) {
                 // we only consider the last half of the pairs, since the first half of
                 // the equations are too difficult to solve: the polynomials are of
-                // degrees too high. Note that here the there are 8 pairs in pair12.
+                // too high degrees. Note that here the there are 8 pairs in pair12, but
+                // we only consider the last 4 of them.
                 var last_half_index = index_of_pairs + pair12.length / 2,
                     // This is an array of two numbers.
                     the_pair        = pair12[last_half_index];
 
-                // TODO: Construct the polynomial and exclude the leading zeroes, as that
-                // could cause the root-finding algorithm to error out. After that check
-                // three conditions. Finally do the same thing for pair21.
+                var degree0 = 0,
+                    degree1 = 0,
+                    degree2 = 0,
+                    degree3 = 0,
+                    degree4 = 0;
+
+                // some constants
+                var point      = stepped_rec2.vertices[the_pair[0]],
+                    edge_start = stepped_rec1.vertices[the_pair[1]],
+                    relative_w = w2 - w1;
+                
+                relative_v = game.sub_vec(v2, v1);
+
+                if (the_pair[1] % 2 === 0) {
+                    degree0 = point[1] + edge_start[1];
+                    degree1 = relative_w * (point[0] - center[0]) - w1 * center[0] + relative_v[1];
+                    degree2 = (center[1] - point[1]) * relative_w * relative_w / 2 - w1 * relative_v[0] - w1 * w1 * center[1] / 2;
+                    degree3 = (center[0] - point[0]) * Math.pow(relative_w, 3) / 6 + Math.pow(w1, 3) * center[0] / 6 - Math.pow(w1, 2) * relative_v[1] / 2;
+                    degree4 = Math.pow(w1, 3) * relative_v[0] / 6;
+                } else {
+                    degree0 = point[0] + edge_start[0];
+                    degree1 = relative_w * (point[1] - center[1]) + w1 * center[1] + relative_v[0];
+                    degree2 = (center[0] - point[0]) * relative_w * relative_w / 2 + w1 * relative_v[1] - w1 * w1 * center[0] / 2;
+                    degree3 = (point[1] - center[1]) * Math.pow(relative_w, 3) / 6 - Math.pow(w1, 3) * center[1] / 6 - Math.pow(w1, 2) * relative_v[0] / 2;
+                    degree4 = -1 * Math.pow(w1, 3) * relative_v[1] / 6;
+               }
+
+                polynomial = game.trim_last_zeroes([degree0, degree1, degree2, degree3, degree4]);
+                roots      = findRoots(polynomial);
+                
+                // TODO: Check three conditions. Finally do the same thing for pair21.
+                return roots;
             }
 
         }
         
         // var p2 = performance.now();
         // return p2-p0;
-        return "t: " + ((m * 90 - angle) / (w2 - w1));
-        // return [exclude_point1, exclude_point2];
+        // return "t: " + ((m * 90 - angle) / (w2 - w1));
+        return pair12;
         
         break;
     case 1:
@@ -373,4 +408,23 @@ game.transform_Coord = function (rec1, rec2) {
         center: transformed_c2,
         normals: normal_vectors,
     };
+};
+
+game.collision.continuous_parallel = function (obja, objb) {
+    // TODO: consider the case pair12 / 21 is undefined, when the rectangles are not
+    // rotating, or rotating at the same angular velocity, and are parallel.
+
+
+    return undefined;
+};
+
+// trim the trailing zeroes
+game.trim_last_zeroes = function (arr) {
+    var result = [...arr];
+
+    while(result[result.length - 1] === 0) {
+        result.pop();
+    }
+
+    return result;
 };

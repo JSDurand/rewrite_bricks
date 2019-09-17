@@ -5,7 +5,7 @@
 // We shall give the boundaries of the Minkowski sum in order to determine the equations
 // of the boundaries of the Minkowski sum.
 game.minkowski = function (rec1, rec2) {
-    var p0   = performance.now();
+    // var p0   = performance.now();
     var ver1 = rec1.vertices,
         ver2 = rec2.vertices;
 
@@ -165,11 +165,11 @@ game.minkowski = function (rec1, rec2) {
     //     line(begin[0], begin[1], end[0], end[1]);
     // }
     
-    var p2 = performance.now();
+    // var p2 = performance.now();
 
     // console.log("1-2: " + (p2-p0));
-    return p2-p0;
-    // return total_pairs;
+    // return p2-p0;
+    return total_pairs;
 };
 
 // Find the corresponding point according to the quadrant. This can also be written as an
