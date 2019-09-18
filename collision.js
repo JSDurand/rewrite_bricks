@@ -113,7 +113,7 @@ game.collision.continuous = function (obja, objb) {
     // var p0   = performance.now();
     // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
     var type_sig = obja.type + (objb.type << 1),
-        epsilon  = 0.0001;
+        epsilon  = 1;
 
     switch (type_sig) {
     case 0:
@@ -175,54 +175,89 @@ game.collision.continuous = function (obja, objb) {
         }
 
         // number of intervals
-        var angle = game.angle_between_vectors(
+        var angle      = game.angle_between_vectors(
             game.sub_vec(edge1[0][1], edge1[0][0]),
             game.sub_vec(edge2[0][1], edge2[0][0])),
-            abs_w = Math.abs(w2 - w1);
+            relative_w = w2 - w1,
+            abs_w      = Math.abs(relative_w);
         
         var number_of_intervals;
         
-        if ((w2 - w1) > 0) {
-            number_of_intervals = Math.floor((abs_w + angle) / 90) - Math.ceil(angle / 90) + 2;
+        if (relative_w > 0) {
+            number_of_intervals = Math.floor((relative_w + angle) / 90) - Math.ceil(angle / 90) + 2;
         } else {
-            number_of_intervals = Math.floor(angle / 90) - Math.ceil((abs_w + angle) / 90) + 2;
+            number_of_intervals = Math.floor(angle / 90) - Math.ceil((relative_w + angle) / 90) + 2;
         }
 
         // loop each subinterval
 
-        // FIXME: some calculations are wrong here.
-
-        var m   = null,
-            t   = null,
-            beg = null,
-            end = null;
+        var m         = null,
+            t_between = null,
+            t         = null,
+            beg       = null,
+            end       = null;
 
         console.log("number of intervals: " + number_of_intervals);
         for (var n = 0; n < number_of_intervals; n++) {
 
+            relative_w = w2 - w1; // needs to fix this
             console.log("The " + (n + 1) + "-th interval");
 
             // the multiple of 90 is denoted as m
 
-            if ((w2 - w1) > 0) {
-                m   = Math.ceil(angle / 90) + n;
-                t   = (m * 90 + angle + 45) / (w2 - w1);
-                beg = t - 45 / (w2 - w1);
-                end = t + 45 / (w2 - w1);
-            } else if (w1 === w2) {
+            if (number_of_intervals === 1) {
+                m   = 0;
                 t   = 0;
                 beg = 0;
                 end = 1;
+            } else if (relative_w > 0) {
+                if (n === 0) {
+                    m = Math.ceil(angle / 90) + n;
+                } else {
+                    m = Math.ceil(angle / 90) + n - 1;
+                }
+
+                t_between = (m * 90 - angle) / relative_w;
+                if (n === 0) {
+                    t   = t_between / 2;
+                    beg = 0;
+                    end = t_between;
+                } else if (n === number_of_intervals - 1) {
+                    t   = (1 + t_between) / 2;
+                    beg = t_between;
+                    end = 1;
+                } else {
+                    t   = t_between - 45 / relative_w;
+                    beg = t_between - 90 / relative_w;
+                    end = t_between;
+                }
             } else {
-                m   = Math.ceil((abs_w + angle) / 90) + n;
-                t   = (m * 90 + angle + 45) / (w2 - w1);
-                beg = t - 45 / (w2 - w1);
-                end = t + 45 / (w2 - w1);
+                if (n === 0) {
+                    m = Math.ceil((relative_w + angle) / 90) + n;
+                } else {
+                    m = Math.ceil((relative_w + angle) / 90) + n - 1;
+                }
+                t_between = (m * 90 - angle) / relative_w;
+                if (n === 0) {
+                    t   = t_between / 2;
+                    beg = 0;
+                    end = t_between;
+                } else if (n === number_of_intervals - 1) {
+                    t   = (1 + t_between) / 2;
+                    beg = t_between;
+                    end = 1;
+                } else {
+                    t   = t_between - 45 / relative_w;
+                    beg = t_between - 90 / relative_w;
+                    end = t_between;
+                }
             }
 
-            console.log("m = " + m);
-            console.log("angle = " + angle);
-            console.log("t = " + t);
+            // console.log("m = " + m);
+            // console.log("w2 - w1 = " + (w2 - w1));
+            // console.log("angle = " + angle);
+            // console.log("t_between = " + ((m * 90) - angle) / relative_w);
+            // console.log("t = " + t);
 
             if (beg < exclude_point1 && end < exclude_point1) {
                 console.log("BST: beg = " + beg + " and end = " + end);
@@ -264,21 +299,22 @@ game.collision.continuous = function (obja, objb) {
 
                 // some constants
                 var point      = stepped_rec2.vertices[the_pair[0]],
-                    edge_start = stepped_rec1.vertices[the_pair[1]],
-                    relative_w = w2 - w1;
+                    edge_start = stepped_rec1.vertices[the_pair[1]];
                 
                 relative_v = game.sub_vec(v2, v1);
 
+                // FIXME: The polynomial is wrong.
+
                 if (the_pair[1] % 2 === 0) {
-                    degree0 = point[1] + edge_start[1];
-                    degree1 = relative_w * (point[0] - center[0]) - w1 * center[0] + relative_v[1];
-                    degree2 = (center[1] - point[1]) * relative_w * relative_w / 2 - w1 * relative_v[0] - w1 * w1 * center[1] / 2;
+                    degree0 = point[1] + edge_start[1] + (point[0] - center[0]) * (angle - Math.pow(angle, 3) / 6) - (point[1] - center[1]) * (angle * angle / 2);
+                    degree1 = relative_w * (point[0] - center[0]) - w1 * center[0] + relative_v[1] - (point[0] - center[0]) * (relative_w * angle * angle / 2) - (point[1] - center[1]) * relative_w * angle;
+                    degree2 = (center[1] - point[1]) * relative_w * relative_w / 2 - w1 * relative_v[0] - w1 * w1 * center[1] / 2 - (point[0] - center[0]) * relative_w * relative_w * angle / 2;
                     degree3 = (center[0] - point[0]) * Math.pow(relative_w, 3) / 6 + Math.pow(w1, 3) * center[0] / 6 - Math.pow(w1, 2) * relative_v[1] / 2;
                     degree4 = Math.pow(w1, 3) * relative_v[0] / 6;
                 } else {
-                    degree0 = point[0] + edge_start[0];
-                    degree1 = relative_w * (point[1] - center[1]) + w1 * center[1] + relative_v[0];
-                    degree2 = (center[0] - point[0]) * relative_w * relative_w / 2 + w1 * relative_v[1] - w1 * w1 * center[0] / 2;
+                    degree0 = point[0] + edge_start[0] - (point[0] - center[0]) * angle * angle / 2 - (point[1] - center[1]) * (angle - Math.pow(angle, 3) / 6);
+                    degree1 = relative_w * (point[1] - center[1]) + w1 * center[1] + relative_v[0] - (point[0] - center[0]) * relative_w * angle + (point[1] - center[1]) * relative_w * angle * angle / 2;
+                    degree2 = (center[0] - point[0]) * relative_w * relative_w / 2 + w1 * relative_v[1] - w1 * w1 * center[0] / 2 + (point[1] - center[1]) * relative_w * relative_w * angle / 2;
                     degree3 = (point[1] - center[1]) * Math.pow(relative_w, 3) / 6 - Math.pow(w1, 3) * center[1] / 6 - Math.pow(w1, 2) * relative_v[0] / 2;
                     degree4 = -1 * Math.pow(w1, 3) * relative_v[1] / 6;
                }
@@ -288,23 +324,30 @@ game.collision.continuous = function (obja, objb) {
 
                 console.log("first roots: ");
                 console.log(roots);
+
+                if (roots.length === 0) {
+                    console.log("No roots!");
+                    continue;
+                }
                 
                 for (var root_index = 0; root_index < roots[1].length; root_index++) {
                     if (Math.abs(roots[1][root_index]) < epsilon) {
                         // this could be a real root. Now check three / two conditions
                         var possible_time = roots[0][root_index],
-                            cost          = Math.cos(relative_w * possible_time),
-                            sint          = Math.sin(relative_w * possible_time),
+                            cost          = Math.cos(relative_w * possible_time + angle),
+                            sint          = Math.sin(relative_w * possible_time + angle),
                             cos_plum      = Math.cos(-1 * w1 * possible_time),
                             sin_plum      = Math.sin(-1 * w1 * possible_time);
 
                         if (possible_time < 0) {
                             console.log("found one negative root: " + possible_time);
                             continue;
+                        } else if (possible_time > 1) {
+                            console.log("Found one root greater than one: " + possible_time);
+                            continue;
                         }
 
-                        stepped_rec1 = game.step_time(obja, possible_time);
-                        stepped_rec2 = game.step_time(objb, possible_time);
+
                         // First it should lie on the boundary line. Let us suppose that
                         // the numerical root finding is accurate enough for now. Change
                         // this depending upon the performances
@@ -316,9 +359,11 @@ game.collision.continuous = function (obja, objb) {
                             quantity_to_equal_zero = point[0] * cost - point[1] * sint - center[0] * cost + center[0] * sint + cos_plum * (center[0] + possible_time * relative_v[0]) - sin_plum * (center[1] + possible_time * relative_v[1]) + edge_start[0];
                         }
 
-                        if (Math.abs(quantity_to_equal_zero) >= epsilon) {
+                        // if (Math.abs(quantity_to_equal_zero) >= epsilon) {
+                        if (quantity_to_equal_zero <= 0) {
                             // this is probably a mistake in finding the roots; just ignore it.
                             console.log("Mistaken root: " + possible_time);
+                            console.log("error: " + quantity_to_equal_zero);
                             continue;
                         }
 
@@ -361,6 +406,8 @@ game.collision.continuous = function (obja, objb) {
                         // if the loop goes here, then it might be a collision time.
                         console.log("roots index = " + root_index);
                         return possible_time;
+                    } else {
+                        console.log("Found one imaginary root: " + roots[0][root_index]);
                     }
                 }
 
@@ -368,7 +415,6 @@ game.collision.continuous = function (obja, objb) {
                 // return roots;
             }
 
-            // TODO: Finally do the same thing for pair21.
             center = [stepped_rec2.c_x(), stepped_rec2.c_y()];
             
             for (var index_of_pairs = 0; index_of_pairs < pair21.length / 2; index_of_pairs++) {
@@ -394,15 +440,15 @@ game.collision.continuous = function (obja, objb) {
                 relative_v = game.sub_vec(v1, v2);
 
                 if (the_pair[1] % 2 === 0) {
-                    degree0 = point[1] + edge_start[1];
-                    degree1 = relative_w * (point[0] - center[0]) - w2 * center[0] + relative_v[1];
-                    degree2 = (center[1] - point[1]) * relative_w * relative_w / 2 - w2 * relative_v[0] - w2 * w2 * center[1] / 2;
+                    degree0 = point[1] + edge_start[1] + (point[0] - center[0]) * (angle - Math.pow(angle, 3) / 6) - (point[1] - center[1]) * (angle * angle / 2);
+                    degree1 = relative_w * (point[0] - center[0]) - w2 * center[0] + relative_v[1] - (point[0] - center[0]) * (relative_w * angle * angle / 2) - (point[1] - center[1]) * relative_w * angle;
+                    degree2 = (center[1] - point[1]) * relative_w * relative_w / 2 - w2 * relative_v[0] - w2 * w2 * center[1] / 2 - (point[0] - center[0]) * relative_w * relative_w * angle / 2;
                     degree3 = (center[0] - point[0]) * Math.pow(relative_w, 3) / 6 + Math.pow(w2, 3) * center[0] / 6 - Math.pow(w2, 2) * relative_v[1] / 2;
                     degree4 = Math.pow(w2, 3) * relative_v[0] / 6;
                 } else {
-                    degree0 = point[0] + edge_start[0];
-                    degree1 = relative_w * (point[1] - center[1]) + w2 * center[1] + relative_v[0];
-                    degree2 = (center[0] - point[0]) * relative_w * relative_w / 2 + w2 * relative_v[1] - w2 * w2 * center[0] / 2;
+                    degree0 = point[0] + edge_start[0] - (point[0] - center[0]) * angle * angle / 2 - (point[1] - center[1]) * (angle - Math.pow(angle, 3) / 6);
+                    degree1 = relative_w * (point[1] - center[1]) + w2 * center[1] + relative_v[0] - (point[0] - center[0]) * relative_w * angle + (point[1] - center[1]) * relative_w * angle * angle / 2;
+                    degree2 = (center[0] - point[0]) * relative_w * relative_w / 2 + w2 * relative_v[1] - w2 * w2 * center[0] / 2 + (point[1] - center[1]) * relative_w * relative_w * angle / 2;
                     degree3 = (point[1] - center[1]) * Math.pow(relative_w, 3) / 6 - Math.pow(w2, 3) * center[1] / 6 - Math.pow(w2, 2) * relative_v[0] / 2;
                     degree4 = -1 * Math.pow(w2, 3) * relative_v[1] / 6;
                }
@@ -413,21 +459,27 @@ game.collision.continuous = function (obja, objb) {
                 console.log("second roots: ");
                 console.log(roots);
                 
+                if (roots.length === 0) {
+                    console.log("No roots!");
+                    continue;
+                }
+                
                 for (var root_index = 0; root_index < roots[1].length; root_index++) {
                     if (Math.abs(roots[1][root_index]) < epsilon) {
                         // this could be a real root. Now check three / two conditions
                             possible_time = roots[0][root_index];
-                            cost          = Math.cos(relative_w * possible_time);
-                            sint          = Math.sin(relative_w * possible_time);
+                            cost          = Math.cos(relative_w * possible_time + angle);
+                            sint          = Math.sin(relative_w * possible_time + angle);
                             cos_plum      = Math.cos(-1 * w2 * possible_time);
                             sin_plum      = Math.sin(-1 * w2 * possible_time);
 
                         if (possible_time < 0) {
+                            console.log("Found one negative root: " + possible_time);
+                            continue;
+                        } else if (possible_time > 1) {
+                            console.log("Found one root greater than one: " + possible_time);
                             continue;
                         }
-
-                        stepped_rec1 = game.step_time(obja, possible_time);
-                        stepped_rec2 = game.step_time(objb, possible_time);
 
                         // First it should lie on the boundary line. Let us suppose that
                         // the numerical root finding is accurate enough for now. Change
@@ -440,9 +492,11 @@ game.collision.continuous = function (obja, objb) {
                             quantity_to_equal_zero = point[0] * cost - point[1] * sint - center[0] * cost + center[0] * sint + cos_plum * (center[0] + possible_time * relative_v[0]) - sin_plum * (center[1] + possible_time * relative_v[1]) + edge_start[0];
                         }
 
-                        if (Math.abs(quantity_to_equal_zero) >= epsilon) {
+                        // if (Math.abs(quantity_to_equal_zero) >= epsilon) {
+                        if (quantity_to_equal_zero <= 0) {
                             // this is probably a mistake in finding the roots; just ignore it.
                             console.log("Mistaken root: " + possible_time);
+                            console.log("error: " + quantity_to_equal_zero);
                             continue;
                         }
 
@@ -455,8 +509,6 @@ game.collision.continuous = function (obja, objb) {
                                 neighbour_pair = pair21.find(function(item) {
                                     return item[1] === neighbour;
                                 });
-
-                            // TODO: Check two conditions. Finally do the same thing for pair21.
 
                             // First transform the rec1 to be axis-aligned and centered at
                             // the origin, and extract useful information.
@@ -486,6 +538,8 @@ game.collision.continuous = function (obja, objb) {
 
                         // if the loop goes here, then it might be a collision time.
                         return possible_time;
+                    } else {
+                        console.log("Found one imaginary root " + roots[0][root_index]);
                     }
                 }
 
