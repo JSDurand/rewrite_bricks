@@ -304,6 +304,7 @@ game.collision.continuous = function (obja, objb) {
                 relative_v = game.sub_vec(v2, v1);
 
                 // FIXME: The polynomial is wrong.
+                // TODO: adapt bilateral advancement algorithm and GJK then.
 
                 if (the_pair[1] % 2 === 0) {
                     degree0 = point[1] + edge_start[1] + (point[0] - center[0]) * (angle - Math.pow(angle, 3) / 6) - (point[1] - center[1]) * (angle * angle / 2);
