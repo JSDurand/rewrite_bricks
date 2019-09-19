@@ -140,30 +140,30 @@ game.minkowski = function (rec1, rec2) {
 
     // Below is for drawing the Minkowski sum, in order to see if the algorithm is
     // correct. After tests it serves no purposes.
-    // for (var alpha = 0; alpha < total_pairs.length; alpha++) {
-    //     var pi    = total_pairs[alpha],
-    //         point = null,
-    //         edge  = null,
-    //         begin = [],
-    //         end   = [];
+    for (var alpha = 0; alpha < total_pairs.length; alpha++) {
+        var pi    = total_pairs[alpha],
+            point = null,
+            edge  = null,
+            begin = [],
+            end   = [];
 
-    //     if (alpha >= 4) { // the first four are pairs and antipodal pairs
-    //         stroke("green");
-    //         edge  = edge1[pi[0]];
-    //         point = ver2[pi[1]];
-    //     } else {
-    //         stroke("yellow");
-    //         point = ver1[pi[0]];
-    //         edge  = edge2[pi[1]];
-    //     }
+        if (alpha >= 4) { // the first four are pairs and antipodal pairs
+            stroke("green");
+            edge  = edge1[pi[0]];
+            point = ver2[pi[1]];
+        } else {
+            stroke("yellow");
+            point = ver1[pi[0]];
+            edge  = edge2[pi[1]];
+        }
 
-    //     begin = game.translateCoordinate(game.add_vec(point, edge[0]));
-    //     end   = game.translateCoordinate(game.add_vec(point, edge[1]));
+        begin = game.translateCoordinate(game.add_vec(point, edge[0]));
+        end   = game.translateCoordinate(game.add_vec(point, edge[1]));
 
-    //     ellipse(begin[0], begin[1], 5, 5);
-    //     ellipse(end[0], end[1], 5, 5);
-    //     line(begin[0], begin[1], end[0], end[1]);
-    // }
+        ellipse(begin[0], begin[1], 5, 5);
+        ellipse(end[0], end[1], 5, 5);
+        line(begin[0], begin[1], end[0], end[1]);
+    }
     
     // var p2 = performance.now();
 
