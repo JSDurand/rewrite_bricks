@@ -25,17 +25,21 @@ function setup () {
                                [40, 40],
                                [-40, 40]]});
     game.add_brick({color: "red", vy: -100, w: 0,
-                    vertices: [[10, 120],
-                               [30, 150],
-                               [00, 170],
-                               [-20, 140]]});
+                    vertices: [[110, 20],
+                               [130, 50],
+                               [100, 70],
+                               [80, 40]]});
     // game.add_brick({color: "red", vx: 0,
     //                 vertices: [[5, -25],
     //                            [25, 5],
     //                            [-5, 25],
     //                            [-25, -5]]});
     game.update();
-    
+
+    // var obj = game.gjk(game.objects[0], game.objects[1]);
+
+    // ellipse(game.translateCoordinate(obj.first)[0], game.translateCoordinate(obj.first)[1], 5, 5);
+    // ellipse(game.translateCoordinate(obj.second)[0], game.translateCoordinate(obj.second)[1], 5, 5);
     // game.envs.mysize = width/10;
     // game.envs.diff = height/10;
     // game.envs.vshift = height/3 - game.constants.defaultWidth/2;

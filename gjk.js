@@ -12,7 +12,12 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
         found            = false;
 
     while (!found) {
-        new_obj = game.support_in_minkowski_difference(rec1, rec2, search_direction);
+        try {
+            new_obj = game.support_in_minkowski_difference(rec1, rec2, search_direction);
+        }
+        catch (error) {
+            throw("search_direction: " + search_direction);
+        }
         
         if (game.dot_prod(new_obj.point, search_direction) <
             game.dot_prod(simplex_array[0].point, search_direction) + game.epsilon) {
@@ -21,8 +26,8 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
                 // this is the closest point
 
                 result = {
-                    first: rec1[simplex_array[0].first],
-                    second: rec2[simplex_array[0].second],
+                    first: rec1.vertices[simplex_array[0].first],
+                    second: rec2.vertices[simplex_array[0].second],
                     intersecting: false,
                 };
                 found = true;
@@ -31,9 +36,9 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
                 if (simplex_array[0].first === simplex_array[1].first) {
                     var to_origin    = game.scalar_vec(-1, simplex_array[0].point),
                         line_vector  = game.sub_vec(simplex_array[1].point,
-                                                   simplex_array[0].point),
+                                                    simplex_array[0].point),
                         normal       = game.add_vec(simplex_array[0].point,
-                                                   game.scalar_vec(game.dot_prod(line_vector, to_origin) / game.sq_len_vec(line_vector), line_vector)),
+                                                    game.scalar_vec(game.dot_prod(line_vector, to_origin) / game.sq_len_vec(line_vector), line_vector)),
                         target_point = rec1.vertices[simplex_array[0].first];
 
                     result = {
@@ -192,11 +197,17 @@ game.nearest_simplex = function (arr) {
                 };
             } else {
                 result = {
-                    simplex: arr,
+                    simplex: [arr[0]],
                     search_direction: to_origin,
-                    contains_origin: true,
+                    contains_origin: false,
                 };
             }
+        } else {
+            result = {
+                simplex: null,
+                search_direction: null,
+                contains_origin: true,
+            };
         }
 
         break;

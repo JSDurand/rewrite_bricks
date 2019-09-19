@@ -72,26 +72,9 @@ game.collision.statics = (obja, objb) => {
     case 0:
         // both are rectangles
 
-        // take vertices
-        var vera = obja.vertices,
-            verb = objb.vertices;
+        var gjk = game.gjk(obja, objb);
 
-        // transform to edges
-        var edgea = vera.map( (e, i) => {
-            return [e, vera[(i+1) % vera.length]];
-        }),
-            edgeb = verb.map( (e, i) => {
-            return [e, verb[(i+1) % verb.length]];
-        });
-
-        for (var i = 0; i < edgea.length; i++) {
-            for (var j = 0; j < edgeb.length; j++) {
-                if (game.collision.two_edges(edgea[i], edgeb[j])) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return gjk.intersecting;
         
         break;
     case 1:
