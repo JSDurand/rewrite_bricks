@@ -1,6 +1,7 @@
-# This is an attempt to rewrite the bricks game, this time adding the rotating bricks.
+# What is this repository for?
+This is an attempt to rewrite the bricks game, this time adding the rotating bricks.
 
-## Problem
+# Problem
 The problem with the rotating bricks is that I want a method to detect continuous
 collisions, but it is quite difficult to do it properly. And the most of the engines
 publicly available just use discrete methods to approximate the situation, which from my
@@ -8,6 +9,17 @@ point of view is not satisfactory enough.
 
 # How to play
 This is currently at very early stage. Don't expect anything playable for the present.
+
+# How to test
+If someone wants to help test this project, then first clone this repository and then try
+out the functions `game.gjk`, `game.collision.continuous`, and `game.collision.statics`,
+with the bricks in the game stored in the array `game.objects`.
+
+For convenience, the command to clone a single branch is:
+```
+git clone -b numerical-root-finding --single-branch https://github.com/JSDurand/rewrite_bricks
+```
+After cloning, one can open the file `index.html` in a browser and try out the functions in the console.
 
 # Possible improvements
 Since this only uses an external library for drawing, a lot of basic functions are not

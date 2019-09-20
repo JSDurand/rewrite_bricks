@@ -25,10 +25,10 @@ function setup () {
                                [40, 40],
                                [-40, 40]]});
     game.add_brick({color: "red", vy: -100, w: 0,
-                    vertices: [[110, 20],
-                               [130, 50],
-                               [100, 70],
-                               [80, 40]]});
+                    vertices: [[110, 10],
+                               [130, 40],
+                               [100, 60],
+                               [80, 30]]});
     // game.add_brick({color: "red", vx: 0,
     //                 vertices: [[5, -25],
     //                            [25, 5],

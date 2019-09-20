@@ -2,6 +2,12 @@
 
 // This file implements the GJK algorithm
 
+// Description of the result of this function: It is an object of the form {type: n,
+// indices: array, first: pi, second: pj, intersecting: bool}. Here type is an integer
+// from 0 to 2; 0 = both are points; 1 = the first is an edge; 2 = the second is an edge.
+// Then indices is an array of two numbers, the first element of which is the index of the
+// point / edge on the first polygon, and the second the second. Finally first / second is
+// the point.
 game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
     var start            = game.support_in_minkowski_difference(rec1, rec2, initial_direction),
         simplex_array    = [start],
@@ -9,15 +15,15 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
         new_obj          = {},
         near_obj         = {},
         result           = {},
-        found            = false;
+        found            = false,
+        to_origin        = undefined,
+        edge_number      = undefined,
+        line_vector      = undefined,
+        normal           = undefined,
+        target_point     = undefined;
 
     while (!found) {
-        try {
-            new_obj = game.support_in_minkowski_difference(rec1, rec2, search_direction);
-        }
-        catch (error) {
-            throw("search_direction: " + search_direction);
-        }
+        new_obj = game.support_in_minkowski_difference(rec1, rec2, search_direction);
         
         if (game.dot_prod(new_obj.point, search_direction) <
             game.dot_prod(simplex_array[0].point, search_direction) + game.epsilon) {
@@ -26,6 +32,8 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
                 // this is the closest point
 
                 result = {
+                    type: 0,
+                    indices: [simplex_array[0].first, simplex_array[0].second],
                     first: rec1.vertices[simplex_array[0].first],
                     second: rec2.vertices[simplex_array[0].second],
                     intersecting: false,
@@ -34,14 +42,23 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
             } else if (simplex_array.length === 2) {
                 // it is on the line
                 if (simplex_array[0].first === simplex_array[1].first) {
-                    var to_origin    = game.scalar_vec(-1, simplex_array[0].point),
-                        line_vector  = game.sub_vec(simplex_array[1].point,
-                                                    simplex_array[0].point),
-                        normal       = game.add_vec(simplex_array[0].point,
-                                                    game.scalar_vec(game.dot_prod(line_vector, to_origin) / game.sq_len_vec(line_vector), line_vector)),
-                        target_point = rec1.vertices[simplex_array[0].first];
+                    to_origin    = game.scalar_vec(-1, simplex_array[0].point);
+                    edge_number  = undefined;
+                    line_vector  = game.sub_vec(simplex_array[1].point,
+                                                simplex_array[0].point);
+                    normal       = game.add_vec(simplex_array[0].point,
+                                                game.scalar_vec(game.dot_prod(line_vector, to_origin) / game.sq_len_vec(line_vector), line_vector));
+                    target_point = rec1.vertices[simplex_array[0].first];
+
+                    if (Math.abs(simplex_array[1].second - simplex_array[0].second) === 1) {
+                        edge_number = Math.min(simplex_array[1].second, simplex_array[0].second);
+                    } else {
+                        edge_number = Math.max(simplex_array[1].second, simplex_array[0].second);
+                    }
 
                     result = {
+                        type: 2,
+                        indices: [simplex_array[0].first, edge_number],
                         first: target_point,
                         second: game.sub_vec(target_point, normal),
                         intersecting: false,
@@ -49,13 +66,22 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
                     found = true;
                 } else if (simplex_array[0].second === simplex_array[1].second) {
                     to_origin    = game.scalar_vec(-1, simplex_array[0].point);
+                    edge_number  = undefined;
                     line_vector  = game.sub_vec(simplex_array[1].point,
                                                simplex_array[0].point);
                     normal       = game.add_vec(simplex_array[0].point,
                                                 game.scalar_vec(game.dot_prod(line_vector, to_origin) / game.sq_len_vec(line_vector), line_vector));
                     target_point = rec2.vertices[simplex_array[0].second];
 
+                    if (Math.abs(simplex_array[1].first - simplex_array[0].first) === 1) {
+                        edge_number = Math.min(simplex_array[1].first, simplex_array[0].first);
+                    } else {
+                        edge_number = Math.max(simplex_array[1].first, simplex_array[0].first);
+                    }
+
                     result = {
+                        type: 1,
+                        indices: [edge_number, simplex_array[0].second],
                         first: game.add_vec(target_point, normal),
                         second: target_point,
                         intersecting: false,
@@ -76,6 +102,8 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
             if (near_obj.contains_origin) {
                 found = true;
                 result = {
+                    type: null,
+                    indices: [],
                     first: null,
                     second: null,
                     intersecting: true,

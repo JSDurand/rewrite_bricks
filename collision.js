@@ -18,13 +18,7 @@ game.collision.point_edge_side = (p, v1, v2) => {
         normal = game.normal_vec(game.sub_vec(v2, v1)),
         ind    = game.dot_prod(rel_p, normal);
 
-    if (ind > 0) {
-        return 1;
-    } else if (ind < 0) {
-        return -1;
-    } else {
-        return 0;
-    }
+    return Math.sign(ind);
 };
 
 game.collision.two_edges = (ea, eb) => {
@@ -134,6 +128,8 @@ game.collision.continuous = function (obja, objb) {
         if (game.len_vec(game.sub_vec(c1, c2)) > r1 + r2 + game.len_vec(game.sub_vec(v1, v2))) {
             return false;
         }
+
+        // TODO: Complete this function.
 
         // calculate excluding points
         // var exclude_point1 = null,
@@ -281,21 +277,201 @@ game.transform_Coord = function (rec1, rec2) {
     };
 };
 
-game.collision.continuous_parallel = function (obja, objb) {
-    // TODO: consider the case pair12 / 21 is undefined, when the rectangles are not
-    // rotating, or rotating at the same angular velocity, and are parallel.
+// point versus plane
 
+// point = [x, y]; plane = {normal: [nx, ny], constant = c}. Both point and plane can be
+// moving, so they are functions of time.
+game.collision.point_plane = function (point, plane, start=0) {
+    var separation_function = function (time) {
+        return game.dot_prod(point(time), plane(time).normal) - plane(time).constant;
+    };
 
-    return undefined;
+    return game.find_root(separation_function, start);
 };
+
+// polygon versus plane
+
+// We reduce the problem to point versus plane by finding the deepest point.
+
+// Both the polygon and the plane are functions of time.
+game.collision.polygon_plane = function (polygon, plane, start=0) {
+    // support returns an index
+    var deepest_point_index = game.support(polygon(1), game.scalar_vec(-1, plane(1).normal)),
+        possible_time       = start,
+        found               = false,
+        result              = {};
+
+    if (game.dot_prod(polygon[1].vertices[deepest_point_index], plane(1).normal) - plane(1).constant > 0) {
+        // It is not colliding at the end. Treat this as not colliding as a trade-off.
+        found  = true;
+        result = {
+            colliding: false,
+            time: undefined,
+        };
+    }
+
+    while (!found) {
+        possible_time = game.collision.point_plane(function (time) {
+            return polygon(time).vertices[deepest_point_index];
+        }, plane, start);
+
+        deepest_point_index = game.support(polygon(possible_time), game.scalar_vec(-1, plane(possible_time).normal));
+
+        if (game.dot_prod(polygon[1].vertices[deepest_point_index], plane(1).normal) - plane(1).constant >= 0) {
+            // Now it is not colliding, which means this should be the time of impact.
+            found  = true;
+            result = {
+                colliding: true,
+                time: possible_time,
+            };
+        }
+    }
+
+    return result;
+};
+
+// polygon versus polygon
+
+// Both polygons are functions of time.
+game.collision.polygon_polygon = function (polygon1, polygon2) {
+    var possible_time = 0,
+        found         = false,
+        gjk           = game.gjk(polygon1(possible_time), polygon2(possible_time));
+
+    while (!found) {
+        if (gjk.intersecting) {
+            return possible_time;
+        }
+
+        // some variables declared first in order to avoid redeclarations
+        var plane           = undefined,
+            vertices        = undefined,
+            edges           = undefined,
+            edge            = undefined,
+            direction       = undefined,
+            possible_result = undefined;
+
+        switch (gjk.type) {
+        case 0:
+            // both are points
+
+            // TODO: the last situation.
+            throw("not implemented yet!");
+            break;
+        case 1:
+            // 1 => edge, 2 => point
+            vertices  = polygon1(possible_time).vertices;
+            edges     = vertices.map(function (e, i) {
+                return [e, vertices[(i + 1) % vertices.length]];
+            });
+            edge      = edges[gjk.first];
+            direction = game.point_edge_side(polygon2(possible_time).vertices(gjk.second),
+                                             edge[0], edge[1]);
+
+            if (direction > 0) {
+                plane = function (time) {
+                    var vertices  = polygon1(time).vertices,
+                        edges     = vertices.map(function (e, i) {
+                            return [e, vertices[(i + 1) % vertices.length]];
+                        }),
+                        edge      = edges[gjk.first];
+
+                    return game.normal_vec(game.sub_vec(edge[1], edge[0]));
+                };
+            } else if (direction < 0) {
+                plane = function (time) {
+                    var vertices  = polygon1(time).vertices,
+                        edges     = vertices.map(function (e, i) {
+                            return [e, vertices[(i + 1) % vertices.length]];
+                        }),
+                        edge      = edges[gjk.first];
+
+                    return game.scalar_vec(-1, game.normal_vec(game.sub_vec(edge[1], edge[0])));
+                };
+            } else {
+                throw("polygon_polygon: the two polygons should not intersect. WHy is this happening?");
+            }
+            
+            possible_result = game.polygon_plane(polygon2, plane, possible_time);
+
+            if (possible_result.colliding) {
+                possible_time = possible_result.time;
+            } else {
+                return false;
+            }
+
+            break;
+        case 2:
+            // 2 => edge, 1 => point
+            
+            vertices  = polygon2(possible_time).vertices;
+            edges     = vertices.map(function (e, i) {
+                return [e, vertices[(i + 1) % vertices.length]];
+            });
+            edge      = edges[gjk.first];
+            direction = game.point_edge_side(polygon1(possible_time).vertices(gjk.second),
+                                             edge[0], edge[1]);
+
+            if (direction > 0) {
+                plane = function (time) {
+                    var vertices  = polygon2(time).vertices,
+                        edges     = vertices.map(function (e, i) {
+                            return [e, vertices[(i + 1) % vertices.length]];
+                        }),
+                        edge      = edges[gjk.first];
+
+                    return game.normal_vec(game.sub_vec(edge[1], edge[0]));
+                };
+            } else if (direction < 0) {
+                plane = function (time) {
+                    var vertices  = polygon2(time).vertices,
+                        edges     = vertices.map(function (e, i) {
+                            return [e, vertices[(i + 1) % vertices.length]];
+                        }),
+                        edge      = edges[gjk.first];
+
+                    return game.scalar_vec(-1, game.normal_vec(game.sub_vec(edge[1], edge[0])));
+                };
+            } else {
+                throw("polygon_polygon: the two polygons should not intersect. WHy is this happening?");
+            }
+            
+            possible_result = game.polygon_plane(polygon1, plane, possible_time);
+
+            if (possible_result.colliding) {
+                possible_time = possible_result.time;
+            } else {
+                return false;
+            }
+
+            break;
+        default:
+            throw("polygon_polygon: GJK should return a type from 0 to 2, but we got: " + gjk.type);
+            break;
+        }
+    }
+
+
+};
+
 
 // trim the trailing zeroes
 game.trim_last_zeroes = function (arr) {
     var result = [...arr];
 
-    while(result[result.length - 1] === 0) {
+    while (result[result.length - 1] === 0) {
         result.pop();
     }
 
     return result;
 };
+
+// ARCHIVE
+
+// game.collision.continuous_parallel = function (obja, objb) {
+//     // TODO: consider the case pair12 / 21 is undefined, when the rectangles are not
+//     // rotating, or rotating at the same angular velocity, and are parallel.
+
+
+//     return undefined;
+// };
