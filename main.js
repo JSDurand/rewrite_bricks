@@ -24,7 +24,7 @@ function setup () {
                                [40, -40],
                                [40, 40],
                                [-40, 40]]});
-    game.add_brick({color: "red", vy: -100, w: 90, vx: -50,
+    game.add_brick({color: "red", vy: -100, w: 60, vx: -100,
                     vertices: [[110, 10],
                                [130, 40],
                                [100, 60],
@@ -35,6 +35,10 @@ function setup () {
     //                            [-5, 25],
     //                            [-25, -5]]});
     game.update();
+
+    // for testing
+    test_polygon1 = function (time) {return game.simulate_time(game.objects[0], time);};
+    test_polygon2 = function (time) {return game.simulate_time(game.objects[1], time);};
 
     // var obj = game.gjk(game.objects[0], game.objects[1]);
 

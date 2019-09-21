@@ -8,6 +8,8 @@
 // Then indices is an array of two numbers, the first element of which is the index of the
 // point / edge on the first polygon, and the second the second. Finally first / second is
 // the point.
+
+// FIXME: Allow some errors to creep in.
 game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
     var start            = game.support_in_minkowski_difference(rec1, rec2, initial_direction),
         simplex_array    = [start],
@@ -169,7 +171,7 @@ game.nearest_simplex = function (arr) {
             vec_difference = game.sub_vec(second_point, new_point),
             to_origin      = game.scalar_vec(-1, new_point);
         
-        if (game.dot_prod(vec_difference, to_origin) > 0) {
+        if (game.dot_prod(vec_difference, to_origin) > game.epsilon) {
             result = {
                 simplex: arr,
                 search_direction: game.sub_vec(to_origin, game.scalar_vec(
@@ -194,17 +196,17 @@ game.nearest_simplex = function (arr) {
             to_origin           = game.scalar_vec(-1, new_point);
 
         // adjust direction to face outwards
-        if (game.dot_prod(first_second_normal, first_to_third) > 0) {
+        if (game.dot_prod(first_second_normal, first_to_third) > game.epsilon) {
             first_second_normal = game.scalar_vec(-1, first_second_normal);
         }
 
         // adjust direction to face outwards
-        if (game.dot_prod(first_third_normal, first_to_second) > 0) {
+        if (game.dot_prod(first_third_normal, first_to_second) > game.epsilon) {
             first_third_normal  = game.scalar_vec(-1, first_third_normal);
         }
 
-        if (game.dot_prod(to_origin, first_second_normal) > 0) {
-            if (game.dot_prod(to_origin, first_to_second) > 0) {
+        if (game.dot_prod(to_origin, first_second_normal) > game.epsilon) {
+            if (game.dot_prod(to_origin, first_to_second) > game.epsilon) {
                 result = {
                     simplex: [arr[0], arr[1]],
                     search_direction: game.sub_vec(to_origin, game.scalar_vec(
@@ -218,8 +220,8 @@ game.nearest_simplex = function (arr) {
                     contains_origin: false,
                 };
             }
-        } else if (game.dot_prod(to_origin, first_third_normal) > 0) {
-            if (game.dot_prod(to_origin, first_to_third) > 0) {
+        } else if (game.dot_prod(to_origin, first_third_normal) > game.epsilon) {
+            if (game.dot_prod(to_origin, first_to_third) > game.epsilon) {
                 result = {
                     simplex: [arr[0], arr[2]],
                     search_direction: game.sub_vec(to_origin, game.scalar_vec(
