@@ -144,14 +144,15 @@ game.add_brick = (params) => {
 
 // Simulate the position at time.
 game.simulate_time = function (rec, time) {
-    var cosw           = Math.cos(rec.w * time),
-        sinw           = Math.sin(rec.w * time),
-        cx             = rec.c_x(),
-        cy             = rec.c_y(),
-        motion_matrix  = [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + rec.vx * time],
+    var w             = rec.w * Math.PI / 180,
+        cosw          = Math.cos(w * time),
+        sinw          = Math.sin(w * time),
+        cx            = rec.c_x(),
+        cy            = rec.c_y(),
+        motion_matrix = [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + rec.vx * time],
                           [sinw, cosw     , -1 * sinw * cx - cosw * cy + cy + rec.vy * time] ,
                           [0   , 0        , 1]],
-        new_brick      = game.clone(rec);
+        new_brick     = game.clone(rec);
 
     new_brick.vertices =  rec.vertices.map(function (e) {
         return game.mul_mat_on_vec(motion_matrix, [].concat(e, [1])).slice(0, 2);

@@ -322,7 +322,6 @@ game.collision.polygon_plane = function (polygon, plane, start=0, end=1) {
         }, plane, 0, possible_time);
 
         deepest_point_index = game.support(polygon(possible_time), game.scalar_vec(-1, plane(possible_time).normal));
-        // debugger;
 
         if (game.dot_prod(polygon(possible_time).vertices[deepest_point_index], plane(possible_time).normal) - plane(possible_time).constant > -1 * game.epsilon) {
             // Now it is not colliding, which means this should be the time of impact.
@@ -350,7 +349,6 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
         count++;
 
         gjk = game.gjk(polygon1(possible_time - game.epsilon), polygon2(possible_time - game.epsilon));
-        // debugger;
 
         if (gjk.intersecting) {
             return possible_time;
@@ -417,8 +415,8 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                 return [e, vertices[(i + 1) % vertices.length]];
             });
             edge      = edges[gjk.indices[0]];
-            direction = game.collision.point_edge_side(polygon2(possible_time).vertices[gjk.indices[1]],
-                                                       edge[0], edge[1]);
+            direction = game.dot_prod(game.normal_vec(game.sub_vec(edge[1], edge[0])),
+                                      polygon2(possible_time).vertices[gjk.indices[1]]);
 
             if (direction > 0) {
                 plane = function (time) {
@@ -455,7 +453,6 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
             }
             
             possible_result = game.collision.polygon_plane(polygon2, plane, possible_time);
-            // debugger;
 
             if (possible_result.colliding) {
                 possible_time = possible_result.time;
@@ -472,8 +469,8 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                 return [e, vertices[(i + 1) % vertices.length]];
             });
             edge      = edges[gjk.indices[1]];
-            direction = game.collision.point_edge_side(polygon1(possible_time).vertices[gjk.indices[0]],
-                                                       edge[0], edge[1]);
+            direction = game.dot_prod(game.normal_vec(game.sub_vec(edge[1], edge[0])),
+                                      polygon1(possible_time).vertices[gjk.indices[0]]);
 
             if (direction > 0) {
                 plane = function (time) {
