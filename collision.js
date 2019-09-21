@@ -89,8 +89,7 @@ game.collision.statics = (obja, objb) => {
 game.collision.continuous = function (obja, objb) {
     // var p0   = performance.now();
     // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
-    var type_sig = obja.type + (objb.type << 1),
-        epsilon  = 1;
+    var type_sig = obja.type + (objb.type << 1);
 
     switch (type_sig) {
     case 0:
@@ -130,6 +129,11 @@ game.collision.continuous = function (obja, objb) {
         }
 
         // TODO: Complete this function.
+
+        var polygon1_func = function (time) {return game.simulate_time(obja, time);},
+            polygon2_func = function (time) {return game.simulate_time(objb, time);};
+
+        return game.collision.polygon_polygon(polygon1_func, polygon2_func);
 
         // calculate excluding points
         // var exclude_point1 = null,
@@ -301,7 +305,7 @@ game.collision.polygon_plane = function (polygon, plane, start=0) {
         found               = false,
         result              = {};
 
-    if (game.dot_prod(polygon[1].vertices[deepest_point_index], plane(1).normal) - plane(1).constant > 0) {
+    if (game.dot_prod(polygon(1).vertices[deepest_point_index], plane(1).normal) - plane(1).constant > 0) {
         // It is not colliding at the end. Treat this as not colliding as a trade-off.
         found  = true;
         result = {
@@ -317,7 +321,7 @@ game.collision.polygon_plane = function (polygon, plane, start=0) {
 
         deepest_point_index = game.support(polygon(possible_time), game.scalar_vec(-1, plane(possible_time).normal));
 
-        if (game.dot_prod(polygon[1].vertices[deepest_point_index], plane(1).normal) - plane(1).constant >= 0) {
+        if (game.dot_prod(polygon(1).vertices[deepest_point_index], plane(1).normal) - plane(1).constant >= 0) {
             // Now it is not colliding, which means this should be the time of impact.
             found  = true;
             result = {
@@ -336,27 +340,71 @@ game.collision.polygon_plane = function (polygon, plane, start=0) {
 game.collision.polygon_polygon = function (polygon1, polygon2) {
     var possible_time = 0,
         found         = false,
-        gjk           = game.gjk(polygon1(possible_time), polygon2(possible_time));
+        count         = 0,
+        gjk           = undefined;
 
-    while (!found) {
+    while (!found && count < 20) {
+        count++;
+
+        gjk = game.gjk(polygon1(possible_time), polygon2(possible_time));
+
         if (gjk.intersecting) {
             return possible_time;
         }
 
-        // some variables declared first in order to avoid redeclarations
-        var plane           = undefined,
-            vertices        = undefined,
-            edges           = undefined,
-            edge            = undefined,
-            direction       = undefined,
-            possible_result = undefined;
+        // some variables are declared first in order to avoid redeclarations
+        var plane             = undefined,
+            vertices          = undefined,
+            edges             = undefined,
+            edge              = undefined,
+            direction         = undefined,
+            possible_result   = undefined,
+
+            // below for point-point case
+            separation_axis   = undefined,
+            separation_func   = undefined,
+            separation_result = undefined,
+            deepest_solved    = false,
+            deepest_count     = 0,
+            point1            = undefined,
+            point2            = undefined,
+            possible_end      = 1;
 
         switch (gjk.type) {
         case 0:
             // both are points
 
-            // TODO: the last situation.
-            throw("not implemented yet!");
+            separation_axis = game.sub_vec(gjk.second, gjk.first);
+
+            while (!deepest_solved && deepest_count < 20) {
+                deepest_count++;
+                // points are indices in fact.
+                point1 = game.support(polygon1(possible_end), separation_axis);
+                point2 = game.support(polygon2(possible_end), game.scalar_vec(-1, separation_axis));
+
+                separation_func = function (time) {
+                    var pa = polygon1(time).vertices[point1],
+                        pb = polygon2(time).vertices[point2];
+
+                    return game.dot_prod(game.sub_vec(pb, pa), separation_axis);
+                };
+
+                if (separation_func(0) < -1 * game.epsilon) {
+                    throw("polygon_polygon: the two polygons are colliding in the beginning.");
+                }
+
+                separation_result = separation_func(possible_end);
+
+                if (separation_result > game.epsilon) {
+                    // not colliding
+                    return false;
+                } else if (separation_result < -1 * game.epsilon) {
+                    possible_end = game.find_root(separation_func, 0, possible_end);
+                } else {
+                    deepest_solved = true;
+                }
+            }
+
             break;
         case 1:
             // 1 => edge, 2 => point
@@ -364,9 +412,9 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
             edges     = vertices.map(function (e, i) {
                 return [e, vertices[(i + 1) % vertices.length]];
             });
-            edge      = edges[gjk.first];
-            direction = game.point_edge_side(polygon2(possible_time).vertices(gjk.second),
-                                             edge[0], edge[1]);
+            edge      = edges[gjk.indices[0]];
+            direction = game.collision.point_edge_side(polygon2(possible_time).vertices[gjk.indices[1]],
+                                                       edge[0], edge[1]);
 
             if (direction > 0) {
                 plane = function (time) {
@@ -374,9 +422,13 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                         edges     = vertices.map(function (e, i) {
                             return [e, vertices[(i + 1) % vertices.length]];
                         }),
-                        edge      = edges[gjk.first];
+                        edge      = edges[gjk.indices[0]],
+                        result    = {};
 
-                    return game.normal_vec(game.sub_vec(edge[1], edge[0]));
+                    result.normal   = game.normal_vec(game.sub_vec(edge[1], edge[0]));
+                    result.constant = game.dot_prod(edge[0], result.normal);
+                    
+                    return result;
                 };
             } else if (direction < 0) {
                 plane = function (time) {
@@ -384,15 +436,19 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                         edges     = vertices.map(function (e, i) {
                             return [e, vertices[(i + 1) % vertices.length]];
                         }),
-                        edge      = edges[gjk.first];
+                        edge      = edges[gjk.indices[0]],
+                        result    = {};
 
-                    return game.scalar_vec(-1, game.normal_vec(game.sub_vec(edge[1], edge[0])));
+                    result.normal   = game.scalar_vec(-1, game.normal_vec(game.sub_vec(edge[1], edge[0])));
+                    result.constant = game.dot_prod(edge[0], result.normal);
+
+                    return result;
                 };
             } else {
                 throw("polygon_polygon: the two polygons should not intersect. WHy is this happening?");
             }
             
-            possible_result = game.polygon_plane(polygon2, plane, possible_time);
+            possible_result = game.collision.polygon_plane(polygon2, plane, possible_time);
 
             if (possible_result.colliding) {
                 possible_time = possible_result.time;
@@ -408,9 +464,9 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
             edges     = vertices.map(function (e, i) {
                 return [e, vertices[(i + 1) % vertices.length]];
             });
-            edge      = edges[gjk.first];
-            direction = game.point_edge_side(polygon1(possible_time).vertices(gjk.second),
-                                             edge[0], edge[1]);
+            edge      = edges[gjk.indices[1]];
+            direction = game.collision.point_edge_side(polygon1(possible_time).vertices[gjk.indices[0]],
+                                                       edge[0], edge[1]);
 
             if (direction > 0) {
                 plane = function (time) {
@@ -418,9 +474,13 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                         edges     = vertices.map(function (e, i) {
                             return [e, vertices[(i + 1) % vertices.length]];
                         }),
-                        edge      = edges[gjk.first];
+                        edge      = edges[gjk.indices[1]],
+                        result    = {};
 
-                    return game.normal_vec(game.sub_vec(edge[1], edge[0]));
+                    result.normal   = game.normal_vec(game.sub_vec(edge[1], edge[0]));
+                    result.constant = game.dot_prod(edge[0], result.normal);
+
+                    return result;
                 };
             } else if (direction < 0) {
                 plane = function (time) {
@@ -428,15 +488,19 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                         edges     = vertices.map(function (e, i) {
                             return [e, vertices[(i + 1) % vertices.length]];
                         }),
-                        edge      = edges[gjk.first];
+                        edge      = edges[gjk.indices[1]],
+                        result    = {};
 
-                    return game.scalar_vec(-1, game.normal_vec(game.sub_vec(edge[1], edge[0])));
+                    result.normal   = game.scalar_vec(-1, game.normal_vec(game.sub_vec(edge[1], edge[0])));
+                    result.constant = game.dot_prod(edge[0], result.normal);
+
+                    return result;
                 };
             } else {
                 throw("polygon_polygon: the two polygons should not intersect. WHy is this happening?");
             }
             
-            possible_result = game.polygon_plane(polygon1, plane, possible_time);
+            possible_result = game.collision.polygon_plane(polygon1, plane, possible_time);
 
             if (possible_result.colliding) {
                 possible_time = possible_result.time;
@@ -451,19 +515,9 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
         }
     }
 
+    // We have run 20 iterations. What should we do?
 
-};
-
-
-// trim the trailing zeroes
-game.trim_last_zeroes = function (arr) {
-    var result = [...arr];
-
-    while (result[result.length - 1] === 0) {
-        result.pop();
-    }
-
-    return result;
+    return possible_time;
 };
 
 // ARCHIVE
@@ -474,4 +528,15 @@ game.trim_last_zeroes = function (arr) {
 
 
 //     return undefined;
+// };
+
+// trim the trailing zeroes
+// game.trim_last_zeroes = function (arr) {
+//     var result = [...arr];
+
+//     while (result[result.length - 1] === 0) {
+//         result.pop();
+//     }
+
+//     return result;
 // };

@@ -28,6 +28,7 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
         if (game.dot_prod(new_obj.point, search_direction) <
             game.dot_prod(simplex_array[0].point, search_direction) + game.epsilon) {
             // no significant improvement
+
             if (simplex_array.length === 1) {
                 // this is the closest point
 
@@ -120,6 +121,8 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
 
 // support function
 
+// Returns the index of the vertex of the rectangle that has the largest inner-product
+// with the given direction.
 game.support = function (rectangle, direction) {
     var vertices = rectangle.vertices,
         result   = 0,

@@ -11,6 +11,7 @@ game.add_brick = (params) => {
         vy       = params["vy"]       || 0,
         w        = params["w"]        || 0;
 
+    // FIXME: Fix this inefficient id-assigning method.
     var old_id   = -1;
 
     for (var i = 0; i < game.objects.length; i++) {
@@ -105,11 +106,17 @@ game.add_brick = (params) => {
                 cy             = this.c_y();
             this.motion_matrix =
                 [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + this.vx],
-                 [sinw, cosw     , -1 * sinw * cx -cosw * cy + cy + this.vy] ,
+                 [sinw, cosw     , -1 * sinw * cx - cosw * cy + cy + this.vy] ,
                  [0   , 0        , 1]];
         },
         update_position: function () {
-            this.translate(this.vx, this.vy);
+            this.move(this.motion_matrix);
+
+            if (!this.motion_updated) {
+                this.update_motion_matrix();
+            }
+
+            // We shall add the structure of contact solvers later.
             this.get_in_screen();
         },
         draw_obj: function () {
@@ -133,4 +140,22 @@ game.add_brick = (params) => {
     };
 
     game.objects.push(brick);
+};
+
+// Simulate the position at time.
+game.simulate_time = function (rec, time) {
+    var cosw           = Math.cos(rec.w * time),
+        sinw           = Math.sin(rec.w * time),
+        cx             = rec.c_x(),
+        cy             = rec.c_y(),
+        motion_matrix  = [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + rec.vx * time],
+                          [sinw, cosw     , -1 * sinw * cx - cosw * cy + cy + rec.vy * time] ,
+                          [0   , 0        , 1]],
+        new_brick      = game.clone(rec);
+
+    new_brick.vertices =  rec.vertices.map(function (e) {
+        return game.mul_mat_on_vec(motion_matrix, [].concat(e, [1])).slice(0, 2);
+    });
+
+    return new_brick;
 };
