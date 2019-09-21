@@ -9,7 +9,6 @@
 // point / edge on the first polygon, and the second the second. Finally first / second is
 // the point.
 
-// FIXME: Allow some errors to creep in.
 game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
     var start            = game.support_in_minkowski_difference(rec1, rec2, initial_direction),
         simplex_array    = [start],

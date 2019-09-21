@@ -86,6 +86,7 @@ game.collision.statics = (obja, objb) => {
     }
 };
 
+// TODO: some optimisations
 game.collision.continuous = function (obja, objb) {
     // var p0   = performance.now();
     // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
@@ -283,12 +284,12 @@ game.transform_Coord = function (rec1, rec2) {
 
 // point = [x, y]; plane = {normal: [nx, ny], constant = c}. Both point and plane can be
 // moving, so they are functions of time.
-game.collision.point_plane = function (point, plane, start=0) {
+game.collision.point_plane = function (point, plane, start=0, end=1) {
     var separation_function = function (time) {
         return game.dot_prod(point(time), plane(time).normal) - plane(time).constant;
     };
 
-    return game.find_root(separation_function, start);
+    return game.find_root(separation_function, start, end);
 };
 
 // polygon versus plane
@@ -296,10 +297,10 @@ game.collision.point_plane = function (point, plane, start=0) {
 // We reduce the problem to point versus plane by finding the deepest point.
 
 // Both the polygon and the plane are functions of time.
-game.collision.polygon_plane = function (polygon, plane, start=0) {
+game.collision.polygon_plane = function (polygon, plane, start=0, end=1) {
     // support returns an index
     var deepest_point_index = game.support(polygon(1), game.scalar_vec(-1, plane(1).normal)),
-        possible_time       = start,
+        possible_time       = end,
         found               = false,
         count               = 0,
         result              = {};
@@ -313,14 +314,15 @@ game.collision.polygon_plane = function (polygon, plane, start=0) {
         };
     }
 
-    while (!found && count < 20) {
+    while (!found && count < 10) {
         count++;
 
         possible_time = game.collision.point_plane(function (time) {
             return polygon(time).vertices[deepest_point_index];
-        }, plane, possible_time);
+        }, plane, 0, possible_time);
 
         deepest_point_index = game.support(polygon(possible_time), game.scalar_vec(-1, plane(possible_time).normal));
+        // debugger;
 
         if (game.dot_prod(polygon(possible_time).vertices[deepest_point_index], plane(possible_time).normal) - plane(possible_time).constant > -1 * game.epsilon) {
             // Now it is not colliding, which means this should be the time of impact.
@@ -337,21 +339,17 @@ game.collision.polygon_plane = function (polygon, plane, start=0) {
 
 // polygon versus polygon
 
-// FIXME: This goes into an infinite loop, for some reason. I shall add a bunch of
-// console.log to see what is happening inside the loop.
-
 // Both polygons are functions of time.
-// FIXME: something is wrong.
 game.collision.polygon_polygon = function (polygon1, polygon2) {
     var possible_time = 0,
         found         = false,
         count         = 0,
         gjk           = undefined;
 
-    while (!found && count < 20) {
+    while (!found && count < 10) {
         count++;
 
-        gjk = game.gjk(polygon1(possible_time + game.epsilon), polygon2(possible_time + game.epsilon));
+        gjk = game.gjk(polygon1(possible_time - game.epsilon), polygon2(possible_time - game.epsilon));
         // debugger;
 
         if (gjk.intersecting) {
@@ -382,7 +380,7 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
 
             separation_axis = game.sub_vec(gjk.second, gjk.first);
 
-            while (!deepest_solved && deepest_count < 20) {
+            while (!deepest_solved && deepest_count < 10) {
                 deepest_count++;
                 // points are indices in fact.
                 point1 = game.support(polygon1(possible_end), separation_axis);
@@ -451,10 +449,13 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                     return result;
                 };
             } else {
-                throw("polygon_polygon: the two polygons should not intersect. Why is this happening?");
+                // The two polygons are just touching. This means we found the time of
+                // impact.
+                return possible_time;
             }
             
             possible_result = game.collision.polygon_plane(polygon2, plane, possible_time);
+            // debugger;
 
             if (possible_result.colliding) {
                 possible_time = possible_result.time;
@@ -521,7 +522,7 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
         }
     }
 
-    // We have run 20 iterations. What should we do?
+    // We have run 10 iterations. What should we do?
 
     return possible_time;
 };

@@ -7,9 +7,11 @@ game.iteration_max = 10;
 game.epsilon       = 0.001;
 
 game.find_root = function (func, start=0, end=1) {
-    // TODO: find a root of FUNC when FUNC changes signs from START to END.
     // First assure the function changes signs.
-    if (func(start) * func(end) > 0) {
+    // debugger;
+    if (func(start) * func(end) > game.epsilon) {
+        console.log(func(start));
+        console.log(func(end));
         throw("root-finding: The function does not change sign from " + start + " to " + end);
     }
 
