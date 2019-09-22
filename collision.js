@@ -392,7 +392,8 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                 };
 
                 if (separation_func(0) < -1 * game.epsilon) {
-                    throw("polygon_polygon: the two polygons are colliding in the beginning.");
+                    return 0;
+                    // throw("polygon_polygon: the two polygons are colliding in the beginning.");
                 }
 
                 separation_result = separation_func(possible_end);
@@ -407,6 +408,7 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                 }
             }
 
+            possible_time = possible_end;
             break;
         case 1:
             // 1 => edge, 2 => point

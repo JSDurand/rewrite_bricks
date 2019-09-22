@@ -1,11 +1,11 @@
+/* global game frameRate angleMode DEGREES createCanvas windowWidth windowHeight width height textSize, test_polygon2, test_polygon1 */
 // Rewrite the good old bricks game
-/* global game frameRate angleMode DEGREES createCanvas windowWidth windowHeight width height textSize */
 
 game      = {};
 game.envs = {};
 
 function setup () {
-    frameRate(20);
+    frameRate(1);
     angleMode(DEGREES);
     game.can          = createCanvas(windowWidth, windowHeight);
     game.centerCanvas();
@@ -18,17 +18,19 @@ function setup () {
     game.envs.gravity = {x:0, y:-6};
     game.envs.life    = 10;
     game.envs.level   = 1;
+    game.envs.id      = 0;
+    game.envs.time    = 0;
     textSize(40);
-    game.add_brick({color: "blue",
+    game.add_brick({color: "blue", w: -45, vx: -20,
                     vertices: [[-40, -40],
                                [40, -40],
                                [40, 40],
                                [-40, 40]]});
-    game.add_brick({color: "red", vy: -100, w: 0, vx: -100,
-                    vertices: [[110, 10],
-                               [130, 40],
-                               [100, 60],
-                               [80, 30]]});
+    game.add_brick({color: "red", vy: -100, w: 30, vx: -100,
+                    vertices: [[100, 20],
+                               [120, 50],
+                               [90, 70],
+                               [70, 40]]});
     // game.add_brick({color: "red", vx: 0,
     //                 vertices: [[5, -25],
     //                            [25, 5],

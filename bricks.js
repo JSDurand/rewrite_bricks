@@ -1,4 +1,4 @@
-/* global game stroke fill beginShape endShape vertex line */
+/* global game stroke fill beginShape endShape vertex line, ellipse */
 
 // implements the bricks
 
@@ -9,17 +9,17 @@ game.add_brick = (params) => {
         can_move = params["can_move"] || false,
         vx       = params["vx"]       || 0,
         vy       = params["vy"]       || 0,
-        w        = params["w"]        || 0;
+        cx       = 0,
+        cy       = 0,
+        w        = params["w"]        || 0,
+        len      = vertices.length;
 
-    // FIXME: Fix this inefficient id-assigning method.
-    var old_id   = -1;
-
-    for (var i = 0; i < game.objects.length; i++) {
-        var ob = game.objects[i];
-        if (ob.id >= old_id) {
-            old_id = ob.id;
-        }
+    for (var i = 0; i < len; i++) {
+        cx += vertices[i][0];
+        cy += vertices[i][1];
     }
+
+    game.envs.id += 1;
 
     var brick = {
         type    : 0,
@@ -30,30 +30,13 @@ game.add_brick = (params) => {
         density : density,
         color   : color,
         can_move: can_move,
-        id      : old_id + 1,
+        id      : game.envs.id,
         vertices: vertices,
 
         // center
-        c_x: function () {
-            var res = 0,
-                len = this.vertices.length;
+        c_x: cx / len,
+        c_y: cy / len,
 
-            for (var i = 0; i < len; i++) {
-                res += vertices[i][0];
-            }
-
-            return res / len;
-        },
-        c_y: function () {
-            var res = 0,
-                len = this.vertices.length;
-
-            for (var i = 0; i < len; i++) {
-                res += vertices[i][1];
-            }
-
-            return res / len;
-        },
         // translation by a vector
         translate: function (x, y) {
             this.motion_updated  = false;
@@ -61,16 +44,18 @@ game.add_brick = (params) => {
                 var vi = this.vertices[i],
                     vx = vi[0],
                     vy = vi[1];
-                vertices[i] =  [x + vx, y + vy];
+
+                this.vertices[i] =  [x + vx, y + vy];
             }
         },
         // general movement as a linear mapping in the projective space
-        move: function (move_matrix) {
-            this.motion_updated = false;
-            for (var i = 0; i < this.vertices.length; i++) {
-                this.vertices[i] = game.mul_mat_on_vec(move_matrix, [].concat(this.vertices[i], [1]));
-            }
-        },
+        // move: function (move_matrix) {
+        //     this.motion_updated = false;
+        //     for (var i = 0; i < this.vertices.length; i++) {
+        //         this.vertices[i] = game.mul_mat_on_vec(move_matrix, [].concat(this.vertices[i], [1]));
+        //     }
+        // },
+        // TODO: This should be incorporated into a contact solver.
         get_in_screen: function () {
             for (var i = 0; i < this.vertices.length; i++) {
                 var vi      = vertices[i],
@@ -94,29 +79,44 @@ game.add_brick = (params) => {
             }
         },
 
-        motion_matrix: null,
+        // motion_matrix: null,
 
         // produces a 3-d matrix that is responsible for moving the brick. Since this is
         // relatively heavy to compute, this should only be called when computing
         // collisions, and once for every pair.
-        update_motion_matrix: function () {
-            var cosw           = Math.cos(this.w),
-                sinw           = Math.sin(this.w),
-                cx             = this.c_x(),
-                cy             = this.c_y();
-            this.motion_matrix =
-                [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + this.vx],
-                 [sinw, cosw     , -1 * sinw * cx - cosw * cy + cy + this.vy] ,
-                 [0   , 0        , 1]];
-        },
-        update_position: function () {
-            this.move(this.motion_matrix);
+        // update_motion_matrix: function () {
+        //     var cosw = Math.cos(this.w),
+        //         sinw = Math.sin(this.w),
+        //         cx   = this.c_x(),
+        //         cy   = this.c_y();
 
-            if (!this.motion_updated) {
-                this.update_motion_matrix();
+        //     this.motion_matrix =
+        //         [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + this.vx],
+        //          [sinw, cosw     , -1 * sinw * cx - cosw * cy + cy + this.vy] ,
+        //          [0   , 0        , 1]];
+        // },
+        update_position: function () {
+            // this.move(this.motion_matrix);
+            var w    = this.w * Math.PI / 180,
+                cosw = Math.cos(this.w),
+                sinw = Math.sin(this.w),
+                cx   = this.c_x,
+                cy   = this.c_y;
+
+            for (var i = 0; i < this.vertices.length; i++) {
+                var vi  = this.vertices[i],
+                    vix = vi[0],
+                    viy = vi[1];
+
+                this.vertices[i] = [
+                    cosw * (vix - cx) - sinw * (viy - cy) + cx + this.vx,
+                    sinw * (vix - cx) + cosw * (viy - cy) + cy + this.vy,
+                ];
             }
 
-            // We shall add the structure of contact solvers later.
+            this.c_x += this.vx;
+            this.c_y += this.vy;
+
             this.get_in_screen();
         },
         draw_obj: function () {
@@ -127,6 +127,10 @@ game.add_brick = (params) => {
                 var pii = game.translateCoordinate(this.vertices[ (i+1) % this.vertices.length]);
                 line(pi[0], pi[1], pii[0], pii[1]);
             }
+
+            // for testing purposes
+            var p0 = game.translateCoordinate(this.vertices[0]);
+            ellipse(p0[0], p0[1], 5, 5);
 
             // fill("black");
             // beginShape();
@@ -147,16 +151,58 @@ game.simulate_time = function (rec, time) {
     var w             = rec.w * Math.PI / 180,
         cosw          = Math.cos(w * time),
         sinw          = Math.sin(w * time),
-        cx            = rec.c_x(),
-        cy            = rec.c_y(),
-        motion_matrix = [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + rec.vx * time],
-                          [sinw, cosw     , -1 * sinw * cx - cosw * cy + cy + rec.vy * time] ,
-                          [0   , 0        , 1]],
-        new_brick     = game.clone(rec);
+        cx            = rec.c_x,
+        cy            = rec.c_y,
+        // motion_matrix = [[cosw, -1 * sinw, -1 * cosw * cx + sinw * cy + cx + rec.vx * time],
+        //                  [sinw, cosw     , -1 * sinw * cx - cosw * cy + cy + rec.vy * time] ,
+        //                  [0   , 0        , 1]],
+        new_brick     = {
+            draw_obj: rec.draw_obj,
+            vertices: [],
+            color: rec.color,
+            vx: rec.vx,
+            vy: rec.vy,
+            w: w,
+        };
 
-    new_brick.vertices =  rec.vertices.map(function (e) {
-        return game.mul_mat_on_vec(motion_matrix, [].concat(e, [1])).slice(0, 2);
-    });
+    for (var i = 0; i < rec.vertices.length; i++) {
+        var vi  = rec.vertices[i],
+            vix = vi[0],
+            viy = vi[1];
+        
+        new_brick.vertices[i] = [
+            cosw * (vix - cx) - sinw * (viy - cy) + cx + rec.vx * time,
+            sinw * (vix - cx) + cosw * (viy - cy) + cy + rec.vy * time,
+        ];
+    }
+
+    new_brick.c_x = cx;
+    new_brick.c_y = cy;
 
     return new_brick;
 };
+
+
+// ARCHIVE
+
+
+// c_x: function () {
+//     var res = 0,
+//         len = this.vertices.length;
+
+//     for (var i = 0; i < len; i++) {
+//         res += vertices[i][0];
+//     }
+
+//     return res / len;
+// },
+// c_y: function () {
+//     var res = 0,
+//         len = this.vertices.length;
+
+//     for (var i = 0; i < len; i++) {
+//         res += vertices[i][1];
+//     }
+
+//     return res / len;
+// },
