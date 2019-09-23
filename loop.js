@@ -3,13 +3,18 @@
 
 // the update function of the game
 game.update = () => {
-    game.envs.time += 1;
 
-    if (game.envs.time > 20) {
-        console.log("ended");
-        game.update = function () {};
+    if (game.envs.stop) {
         return;
     }
+    
+    // game.envs.time += 1;
+
+    // if (game.envs.time > 20) {
+    //     console.log("ended");
+    //     game.update = function () {};
+    //     return;
+    // }
     
     // console.log("running");
     // clear the screen first
@@ -29,6 +34,7 @@ game.update = () => {
     for (var i = 0; i < game.objects.length; i++) {
         var ob = game.objects[i];
 
+        ob.update_position();
         ob.draw_obj();
     }
 

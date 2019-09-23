@@ -3,7 +3,7 @@
 // implements the bricks
 
 game.add_brick = (params) => {
-    var vertices = params["vertices"] || [[0, 0], [20, 0], [20, 20], [0, 20]],
+    var vertices = params["vertices"] || [[0, 0], [0, 0], [0, 0], [0, 0]],
         density  = params["density"]  || 1,
         color    = params["color"]    || "red",
         can_move = params["can_move"] || false,
@@ -12,7 +12,8 @@ game.add_brick = (params) => {
         cx       = 0,
         cy       = 0,
         w        = params["w"]        || 0,
-        len      = vertices.length;
+        len      = vertices.length,
+        fake     = params["fake"] || false;
 
     for (var i = 0; i < len; i++) {
         cx += vertices[i][0];
@@ -22,16 +23,17 @@ game.add_brick = (params) => {
     game.envs.id += 1;
 
     var brick = {
-        type    : 0,
-        vertices: vertices,
-        vx      : vx,
-        vy      : vy,
-        w       : w,
-        density : density,
-        color   : color,
-        can_move: can_move,
-        id      : game.envs.id,
-        vertices: vertices,
+        type             : 0,
+        vertices         : vertices,
+        vx               : vx,
+        vy               : vy,
+        w                : w,
+        density          : density,
+        color            : color,
+        can_move         : can_move,
+        id               : game.envs.id,
+        constraint_solver: [],
+        vertices         : vertices,
 
         // center
         c_x: cx / len,
@@ -47,6 +49,8 @@ game.add_brick = (params) => {
 
                 this.vertices[i] =  [x + vx, y + vy];
             }
+            this.c_x += x;
+            this.c_y += y;
         },
         // general movement as a linear mapping in the projective space
         // move: function (move_matrix) {
@@ -57,25 +61,39 @@ game.add_brick = (params) => {
         // },
         // TODO: This should be incorporated into a contact solver.
         get_in_screen: function () {
+            var lengthx    = game.envs.width  / 2,
+                lengthy    = game.envs.height / 2,
+                x_converse = false,
+                y_converse = false;
+
             for (var i = 0; i < this.vertices.length; i++) {
-                var vi      = vertices[i],
-                    x       = vi[0],
-                    y       = vi[1],
-                    lengthx = game.envs.width  / 2,
-                    lengthy = game.envs.height / 2;
+                var vi         = vertices[i],
+                    x          = vi[0],
+                    y          = vi[1];
 
                 if (x < -1 * lengthx) {
                     this.translate(-1 * lengthx - x, 0);
+                    x_converse = true;
                 }
                 if (x > lengthx) {
                     this.translate(lengthx - x, 0);
+                    x_converse = true;
                 }
                 if (y < -1 * lengthy) {
                     this.translate(0, -1 * lengthy - y);
+                    y_converse = true;
                 }
                 if (y > lengthy) {
                     this.translate(0, lengthy - y);
+                    y_converse = true;
                 }
+            }
+
+            if (x_converse) {
+                this.vx *= -1;
+            }
+            if (y_converse) {
+                this.vy *= -1;
             }
         },
 
@@ -96,12 +114,20 @@ game.add_brick = (params) => {
         //          [0   , 0        , 1]];
         // },
         update_position: function () {
-            // this.move(this.motion_matrix);
             var w    = this.w * Math.PI / 180,
                 cosw = Math.cos(this.w),
                 sinw = Math.sin(this.w),
                 cx   = this.c_x,
                 cy   = this.c_y;
+
+            this.vx += game.envs.gravity.x / this.density;
+            this.vy += game.envs.gravity.y / this.density;
+
+            var solvers = this.constraint_solver;
+
+            for (var c = 0; c < solvers.length; c++) {
+                this.constraint_solver[c].solve();
+            }
 
             for (var i = 0; i < this.vertices.length; i++) {
                 var vi  = this.vertices[i],
@@ -129,8 +155,24 @@ game.add_brick = (params) => {
             }
 
             // for testing purposes
-            var p0 = game.translateCoordinate(this.vertices[0]);
-            ellipse(p0[0], p0[1], 5, 5);
+            for (var c = 0; c < this.constraint_solver.length; c++) {
+                var solver = this.constraint_solver[c],
+                    bodyA  = solver.bodyA,
+                    bodyB  = solver.bodyB,
+                    p0     = game.translateCoordinate([bodyA.c_x, bodyA.c_y]),
+                    p1     = game.translateCoordinate([bodyB.c_x, bodyB.c_y]);
+
+                ellipse(p0[0], p0[1], 5, 5);
+                ellipse(p1[0], p1[1], 5, 5);
+                line(p0[0], p0[1], p1[0], p1[1]);
+            }
+
+            // var p0     = game.translateCoordinate([this.c_x, this.c_y]),
+            //     origin = game.translateCoordinate([0, 0]);
+
+            // ellipse(p0[0], p0[1], 5, 5);
+            // ellipse(origin[0], origin[1], 5, 5);
+            // line(p0[0], p0[1], origin[0], origin[1]);
 
             // fill("black");
             // beginShape();
@@ -143,7 +185,11 @@ game.add_brick = (params) => {
         },
     };
 
-    game.objects.push(brick);
+    if (!fake) {
+        game.objects.push(brick);
+    }
+
+    return brick;
 };
 
 // Simulate the position at time.
