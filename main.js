@@ -29,26 +29,26 @@ function setup () {
     game.envs.contact_solvers = [];
 
     // some brick for testing
-    game.add_brick({color: "orange", w: 0,
+    game.add_brick({color: "orange", w: 0, vx: 2,
                     vertices: [[-200, -40],
                                [-120, -40],
                                [-120, 40],
                                [-200, 40]]});
-    game.add_brick({color: "red", vy: 20, w: 0, vx: 30,
+    game.add_brick({color: "red", vy: 1, w: 0, vx: 30,
                     vertices: [[100, 10],
-                               [120, 40],
-                               [90, 60],
-                               [70, 30]]});
-    // game.add_brick({color: "blue", vx: 30,
+                               [130, 55],
+                               [85, 85],
+                               [55, 40]]});
+    // game.add_brick({color: "gold", vx: 30, vy: -1,
     //                 vertices: [[5, -25],
     //                            [25, 5],
     //                            [-5, 25],
     //                            [-25, -5]]});
 
-    // game.objects[0].constraint_solver[0]        = new game.constraint_solver();
-    // game.objects[0].constraint_solver[0].bodyB  = game.objects[0];
-    // game.objects[0].constraint_solver[0].bodyA  = game.add_brick({fake: true,});
-    // game.objects[0].constraint_solver[0].radius = 100;
+    game.objects[1].constraint_solver[0]        = new game.constraint_solver();
+    game.objects[1].constraint_solver[0].bodyB  = game.objects[1];
+    game.objects[1].constraint_solver[0].bodyA  = game.add_brick({fake: true,});
+    game.objects[1].constraint_solver[0].radius = 200;
     // game.objects[0].constraint_solver[0].solve = function () {
     //     var bodyA = this.bodyA,
     //         cxA   = bodyA.c_x,

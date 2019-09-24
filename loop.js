@@ -39,15 +39,13 @@ game.update = () => {
                 continue;
             }
 
-            // First push back a little so that they are not colliding.
-            collision -= game.epsilon;
+            // First push forward a little so that they are colliding.
+            collision += game.epsilon;
 
             // If they collide at the start, send them to contact solvers.
-            if (collision < game.epsilon) {
-                // TODO: Add a contact solver.
+            if (collision < 2 * game.epsilon) {
                 contact = game.make_contact_solver(obj, obj2);
                 game.envs.contact_solvers.push(contact);
-                continue;
             }
             
             var gjk = game.gjk(game.simulate_time(obj , collision),
@@ -55,7 +53,7 @@ game.update = () => {
 
             // debugger;
             // Add a constraint.
-            constraint = game.make_non_penetration_solver(obj, obj2, 0.95, gjk.first, gjk.second);
+            constraint = game.make_non_penetration_solver(obj, obj2, 0.95, gjk.first, gjk.second, collision);
             game.envs.collision_constraints.push(constraint);
         }
     }
@@ -68,10 +66,6 @@ game.update = () => {
         var collision_constraint = game.envs.collision_constraints[collision_index];
 
         // debugger;
-        collision_constraint.solve();
-        collision_constraint.solve();
-        collision_constraint.solve();
-        collision_constraint.solve();
         collision_constraint.solve();
     }
 

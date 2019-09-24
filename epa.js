@@ -12,23 +12,25 @@ game.epa = function (rec1, rec2, initial_simplex) {
         support  = undefined,
         edge     = undefined,
         distance = undefined,
-        result   = {};
+        result   = {},
+        count    = 0;
 
-    for (;;) {
+    for (count = 0; count < 10; count++) {
         edge     = game.closest_edge(rec1, rec2, simplex);
         support  = game.support_in_minkowski_difference(rec1, rec2, edge.normal);
         distance = game.dot_prod(support.point, edge.normal);
 
-        if (distance - edge.distance < game.epsilon) {
-            result = {
-                normal: edge.normal,
-                distance: distance,
-            };
+        if (distance - edge.distance < 0.1) {
             break;
         } else {
             simplex.splice(edge.index + 1, 0, support);
         }
     }
+
+    result = {
+        normal: edge.normal,
+        distance: distance,
+    };
 
     return result;
 };

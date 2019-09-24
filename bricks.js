@@ -1,10 +1,12 @@
 /* global game stroke fill beginShape endShape vertex line, ellipse */
 
 // implements the bricks
+// TODO: Add some convenient functions to add bricks.
 
 game.add_brick = (params) => {
     var vertices = params["vertices"] || [[0, 0], [0, 0], [0, 0], [0, 0]],
         // actually density means mass in the game
+        // density should be automatically determined.
         density  = params["density"]  || 1,
         color    = params["color"]    || "red",
         can_move = params["can_move"] || false,
@@ -22,6 +24,10 @@ game.add_brick = (params) => {
     }
 
     game.envs.id += 1;
+
+   // calculate the mass 
+    density = density * game.len_vec(game.sub_vec(vertices[1], vertices[0])) *
+        game.len_vec(game.sub_vec(vertices[2], vertices[1]));
 
    // calculate the moment of inertia 
 

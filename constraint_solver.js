@@ -23,16 +23,20 @@ game.constraint_solver = function () {
     this.radius = 100;
     // a prescribed distance constraint
     this.evaluate = function () {
-        var bodyA = this.bodyA,
-            cxA   = bodyA.c_x,
-            cyA   = bodyA.c_y,
-            bodyB = this.bodyB,
-            cxB   = bodyB.c_x,
-            cyB   = bodyB.c_y,
-            cx    = cxB - cxA,
-            cy    = cyB - cyA;
+        var bodyA              = this.bodyA,
+            cxA                = bodyA.c_x,
+            cyA                = bodyA.c_y,
+            bodyB              = this.bodyB,
+            cxB                = bodyB.c_x,
+            cyB                = bodyB.c_y,
+            cx                 = cxB - cxA,
+            cy                 = cyB - cyA,
+            bias_factor        = 0.75,
+            tentative_velocity = [bodyB.vx - bodyA.vx, bodyB.vy - bodyA.vy],
+            jacobian           = game.scalar_vec(1/game.len_vec([cx, cy]), [cx, cy]);
 
-        return game.len_vec([cx, cy]) - 100;
+        return game.dot_prod(jacobian, tentative_velocity) +
+            bias_factor * (game.len_vec([cx, cy]) - this.radius);
     };
     this.solve = function () {
         var bodyA = this.bodyA,
@@ -65,22 +69,24 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB,
         cyB    = bodyB.C_y,
         cx     = cxB - cxA,
         cy     = cyB - cyA,
-        normal = undefined;
+        normal = undefined,
+        gjk    = game.gjk(bodyA, bodyB);
 
-    if (pointA && pointB) {
+    var dir_a_to_b = [cx, cy],
+        deepest_a  = game.support(bodyA, dir_a_to_b),
+        deepest_b  = game.support(bodyB, game.scalar_vec(-1, dir_a_to_b));
+            
+    pointA = bodyA.vertices[deepest_a];
+    pointB = bodyB.vertices[deepest_b];
+
+    if (gjk.intersecting === false) {
         normal = game.sub_vec(pointB, pointA);
-    } else {
-        var dir_a_to_b = [cx, cy],
-            deepest_a  = game.support(bodyA, dir_a_to_b),
-            deepest_b  = game.support(bodyB, game.scalar_vec(-1, dir_a_to_b));
-
-        pointA = bodyA.vertices[deepest_a];
-        pointB = bodyB.vertices[deepest_b];
-        normal = game.sub_vec(bodyB.vertices[deepest_b], bodyA.vertices[deepest_a]);
-
+            
         if (game.dot_prod(normal, dir_a_to_b) < 0) {
             normal = game.scalar_vec(-1, normal);
         }
+    } else {
+        normal = game.epa(bodyA, bodyB, gjk.simplex).normal;
     }
 
     solver.bodyA       = bodyA;
@@ -89,45 +95,45 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB,
     solver.normal      = game.unit_vec(normal);
     solver.impact_time = impact_time || 0;
     solver.evaluate    = function () {
-        var bodyA = this.bodyA,
-            cxA   = bodyA.c_x,
-            cyA   = bodyA.c_y,
-            bodyB = this.bodyB,
-            cxB   = bodyB.c_x,
-            cyB   = bodyB.c_y,
-            cx    = cxB - cxA,
-            cy    = cyB - cyA;
+        var bodyA          = this.bodyA,
+            cxA            = bodyA.c_x,
+            cyA            = bodyA.c_y,
+            bodyB          = this.bodyB,
+            cxB            = bodyB.c_x,
+            cyB            = bodyB.c_y,
+            gjk            = game.gjk(bodyA, bodyB),
+            contact_info   = undefined;
 
-        var dir_a_to_b = game.unit_vec([cx, cy]),
-            deepest_a  = game.support(bodyA, dir_a_to_b),
-            deepest_b  = game.support(bodyB, game.scalar_vec(-1, dir_a_to_b)),
-            delta_vec  = game.sub_vec(bodyB.vertices[deepest_b], bodyA.vertices[deepest_a]);
+        if (gjk.intersecting === false) {
+            return 0;
+        }
 
-        return game.dot_prod(delta_vec, dir_a_to_b);
+        contact_info = game.epa(bodyA, bodyB, gjk.simplex);
 
-        // if (game.dot_prod(delta_vec, dir_a_to_b) >= game.epsilon) {
-        //     return 0;
-        // } else {
-        //     return 1;
-        // }
+        return contact_info.distance;
     };
 
     solver.solve = function () {
-        var bodyA  = this.bodyA,
-            cxA    = bodyA.c_x,
-            cyA    = bodyA.c_y,
-            cA     = [cxA, cyA],
-            mA     = 1 / bodyA.density,
-            iA     = 1 / bodyA.inertia,
-            bodyB  = this.bodyB,
-            cxB    = bodyB.c_x,
-            cyB    = bodyB.c_y,
-            cB     = [cxB, cyB],
-            mB     = 1 / bodyB.density,
-            iB     = 1 / bodyB.inertia,
-            cx     = cxB - cxA,
-            cy     = cyB - cyA,
-            normal = this.normal;
+        // FIXME: Iterate and clamp here, if needed.
+        // FIXME: Add restitution!
+        var bodyA         = this.bodyA,
+            cxA           = bodyA.c_x,
+            cyA           = bodyA.c_y,
+            cA            = [cxA, cyA],
+            mA            = 1 / bodyA.density,
+            iA            = 1 / bodyA.inertia,
+            bodyB         = this.bodyB,
+            cxB           = bodyB.c_x,
+            cyB           = bodyB.c_y,
+            cB            = [cxB, cyB],
+            mB            = 1 / bodyB.density,
+            iB            = 1 / bodyB.inertia,
+            cx            = cxB - cxA,
+            cy            = cyB - cyA,
+            normal        = this.normal,
+            count         = 0,
+            total_lambda  = 0,
+            prev_lambda   = 0;
 
         var tentative_velocity = [bodyA.vx, bodyA.vy, bodyA.w, bodyB.vx, bodyB.vy, bodyB.w],
             jacobian           = [-1 * normal[0], -1 * normal[1],
@@ -139,16 +145,13 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB,
             bias_factor        = this.bias,
             // constraint         = Math.abs(game.len_vec([cx, cy]) - 100),
             constraint         = this.evaluate(),
-            lambda             = -1 * effective_mass * (game.dot_prod(jacobian, tentative_velocity)
-                                                        + bias_factor * constraint / (1 - this.impact_time)),
+            lambda             = -1 * effective_mass * (1.9 * game.dot_prod(jacobian, tentative_velocity)
+                                                        - bias_factor * constraint / (1 - this.impact_time)),
             impulse            = game.scalar_vec(lambda, jacobian);
 
         this.bodyA.vx += impulse[0] * mA;
         this.bodyA.vy += impulse[1] * mA;
         this.bodyA.w  += impulse[2] * iA;
-
-        // debugger;
-
 
         this.bodyB.vx += impulse[3] * mB;
         this.bodyB.vy += impulse[4] * mB;
@@ -159,6 +162,12 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB,
     };
 
     return solver;
+};
+
+
+// Clamping operation
+game.clamp = function (x, min, max) {
+    return Math.min(max, Math.max(x, min));
 };
 
 
@@ -184,3 +193,32 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB,
 //     this.bodyB.vx += impulse[0];
 //     this.bodyB.vy += impulse[1];
 // };
+
+
+// lambda         = game.clamp(lambda, -Number.MAX_SAFE_INTEGER, 0);
+// total_lambda  += lambda;
+// impulse        = game.scalar_vec(lambda, jacobian);
+
+// while (count < 3) {
+//     count++;
+
+//     // prev_lambda        = total_lambda;
+//     tentative_velocity = [bodyA.vx, bodyA.vy, bodyA.w, bodyB.vx, bodyB.vy, bodyB.w];
+//     lambda             = -1 * effective_mass * (1.9 * game.dot_prod(jacobian, tentative_velocity)
+//                                                 - bias_factor * constraint / (1 - this.impact_time));
+//     // total_lambda      += lambda;
+//     // total_lambda       = game.clamp(total_lambda, -Number.MAX_SAFE_INTEGER, 0);
+//     impulse            = game.scalar_vec(lambda, jacobian);
+
+//     this.bodyA.vx += impulse[0] * mA;
+//     this.bodyA.vy += impulse[1] * mA;
+//     this.bodyA.w  += impulse[2] * iA;
+
+//     this.bodyB.vx += impulse[3] * mB;
+//     this.bodyB.vy += impulse[4] * mB;
+//     this.bodyB.w  += impulse[5] * iB;
+// }
+
+// debugger;
+
+
