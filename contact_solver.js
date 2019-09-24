@@ -1,7 +1,5 @@
 /* global game */
 
-// TODO: add contact solvers
-
 // The contact solver is supposed to be simple: after the collision detection finds two
 // polygons are colliding, the contact solver receives the contact normal and the contact
 // constant. Then the contact solver pushes the two polygons, or one polygon and one
@@ -30,17 +28,21 @@ game.make_contact_solver = function (bodyA, bodyB) {
             cyA             = bodyA.C_y,
             cxB             = bodyB.c_x,
             cyB             = bodyB.C_y,
-            cx              = cxB - cxA,
-            cy              = cyB - cyA,
-            dir_a_to_b      = [cx, cy],
-            deepest_a       = game.support(bodyA, dir_a_to_b),
-            deepest_b       = game.support(bodyB, game.scalar_vec(-1, dir_a_to_b)),
-            pointA          = bodyA.vertices[deepest_a],
-            pointB          = bodyB.vertices[deepest_b],
-            translation_vec = game.sub_vec(pointA, pointB);
+            gjk             = game.gjk(bodyA, bodyB),
+            contact_info    = undefined,
+            contact_normal  = undefined;
 
-        bodyA.translate(translation_vec[0] * mB / (mA + mB), translation_vec[1] * mB / (mA + mB));
-        bodyB.translate(-1 * translation_vec[0] * mA / (mA + mB), -1 * translation_vec[1] * mA / (mA + mB));
+        if (gjk.intersecting === false) {
+            // Nothing needs to be done.
+            return;
+        }
+
+        // Normal points from the first to the second.
+        contact_info   = game.epa(bodyA, bodyB, gjk.simplex);
+        contact_normal = game.scalar_vec(contact_info.distance, contact_info.normal);
+
+        bodyA.translate(-1 * contact_normal[0] * mA / (mA + mB), -1 * contact_normal[1] * mA / (mA + mB));
+        bodyB.translate(contact_normal[0] * mB / (mA + mB), contact_normal[1] * mB / (mA + mB));
     };
 
     return solver;

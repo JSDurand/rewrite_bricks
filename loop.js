@@ -7,14 +7,8 @@ game.update = () => {
     if (game.envs.stop) {
         return;
     }
-    
-    // game.envs.time += 1;
 
-    // if (game.envs.time > 20) {
-    //     console.log("ended");
-    //     game.update = function () {};
-    //     return;
-    // }
+    // game.envs.stop = true;
     
     // clear the screen first
     background(0);
@@ -74,6 +68,10 @@ game.update = () => {
         var collision_constraint = game.envs.collision_constraints[collision_index];
 
         // debugger;
+        collision_constraint.solve();
+        collision_constraint.solve();
+        collision_constraint.solve();
+        collision_constraint.solve();
         collision_constraint.solve();
     }
 

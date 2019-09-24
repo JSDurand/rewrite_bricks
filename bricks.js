@@ -26,7 +26,7 @@ game.add_brick = (params) => {
    // calculate the moment of inertia 
 
     var inertia = density * (game.sq_len_vec(game.sub_vec(vertices[1], vertices[0])) +
-                             game.sq_len_vec(game.sub_vec(vertices[2], vertices[1]))) / 12;
+                             game.sq_len_vec(game.sub_vec(vertices[2], vertices[1])));
 
     var brick = {
         type             : 0,
@@ -121,8 +121,8 @@ game.add_brick = (params) => {
         // },
         update_position: function () {
             var w                = this.w * Math.PI / 180,
-                cosw             = Math.cos(this.w),
-                sinw             = Math.sin(this.w),
+                cosw             = Math.cos(w),
+                sinw             = Math.sin(w),
                 cx               = this.c_x,
                 cy               = this.c_y,
                 done             = false,

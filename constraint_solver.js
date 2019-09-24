@@ -8,7 +8,7 @@
 // the whole process begins with a broad phase collision detection, such as the aabb tree.
 // Next is the narrow phase collision detection using bilateral advancement to calculate
 // the time of impact. Then we proceed to the contact solver. It uses the GJK algorithm to
-// find the contact normals and the contact points. WIth this information we then enter
+// find the contact normals and the contact points. With this information we then enter
 // the constraint solving part: from the constraint we consider the Jacobian, and then
 // solve for the Lagrangian multiplier. This gives us the constraint force, which allows
 // us to calculate the constraint impulses to apply to objects. After these two
@@ -57,7 +57,7 @@ game.constraint_solver = function () {
     };
 };
 
-game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB) {
+game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB, impact_time) {
     var solver = new game.constraint_solver(),
         cxA    = bodyA.c_x,
         cyA    = bodyA.C_y,
@@ -83,11 +83,12 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB)
         }
     }
 
-    solver.bodyA    = bodyA;
-    solver.bodyB    = bodyB;
-    solver.bias     = bias;
-    solver.normal   = game.unit_vec(normal);
-    solver.evaluate = function () {
+    solver.bodyA       = bodyA;
+    solver.bodyB       = bodyB;
+    solver.bias        = bias;
+    solver.normal      = game.unit_vec(normal);
+    solver.impact_time = impact_time || 0;
+    solver.evaluate    = function () {
         var bodyA = this.bodyA,
             cxA   = bodyA.c_x,
             cyA   = bodyA.c_y,
@@ -97,7 +98,7 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB)
             cx    = cxB - cxA,
             cy    = cyB - cyA;
 
-        var dir_a_to_b = [cx, cy],
+        var dir_a_to_b = game.unit_vec([cx, cy]),
             deepest_a  = game.support(bodyA, dir_a_to_b),
             deepest_b  = game.support(bodyB, game.scalar_vec(-1, dir_a_to_b)),
             delta_vec  = game.sub_vec(bodyB.vertices[deepest_b], bodyA.vertices[deepest_a]);
@@ -116,42 +117,42 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias, pointA, pointB)
             cxA    = bodyA.c_x,
             cyA    = bodyA.c_y,
             cA     = [cxA, cyA],
-            mA     = bodyA.density,
-            iA     = bodyA.inertia,
+            mA     = 1 / bodyA.density,
+            iA     = 1 / bodyA.inertia,
             bodyB  = this.bodyB,
             cxB    = bodyB.c_x,
             cyB    = bodyB.c_y,
             cB     = [cxB, cyB],
-            mB     = bodyB.density,
-            iB     = bodyB.inertia,
+            mB     = 1 / bodyB.density,
+            iB     = 1 / bodyB.inertia,
             cx     = cxB - cxA,
             cy     = cyB - cyA,
             normal = this.normal;
 
         var tentative_velocity = [bodyA.vx, bodyA.vy, bodyA.w, bodyB.vx, bodyB.vy, bodyB.w],
             jacobian           = [-1 * normal[0], -1 * normal[1],
-                                  -1 * game.cross_2d(game.sub_vec(pointA, cA), normal),
+                                  -1 * game.cross_2d(game.sub_vec(pointB, cA), normal),
                                   normal[0], normal[1],
-                                  game.cross_2d(game.sub_vec(pointB, cB), normal)],
+                                  game.cross_2d(game.sub_vec(pointA, cB), normal)],
             effective_mass     = 1 / (mA + mB + iA * Math.pow(jacobian[2], 2)
                                       + iB * Math.pow(jacobian[5], 2)),
             bias_factor        = this.bias,
             // constraint         = Math.abs(game.len_vec([cx, cy]) - 100),
             constraint         = this.evaluate(),
             lambda             = -1 * effective_mass * (game.dot_prod(jacobian, tentative_velocity)
-                                                        + bias_factor * constraint),
+                                                        + bias_factor * constraint / (1 - this.impact_time)),
             impulse            = game.scalar_vec(lambda, jacobian);
 
-        this.bodyA.vx += impulse[0] / mA;
-        this.bodyA.vy += impulse[1] / mA;
-        this.bodyA.w  += impulse[2] / iA;
+        this.bodyA.vx += impulse[0] * mA;
+        this.bodyA.vy += impulse[1] * mA;
+        this.bodyA.w  += impulse[2] * iA;
 
         // debugger;
 
 
-        this.bodyB.vx += impulse[3] / mB;
-        this.bodyB.vy += impulse[4] / mB;
-        this.bodyB.w  += impulse[5] / iB;
+        this.bodyB.vx += impulse[3] * mB;
+        this.bodyB.vy += impulse[4] * mB;
+        this.bodyB.w  += impulse[5] * iB;
 
         // test
         this.dead = true;

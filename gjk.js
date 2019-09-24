@@ -3,11 +3,12 @@
 // This file implements the GJK algorithm
 
 // Description of the result of this function: It is an object of the form {type: n,
-// indices: array, first: pi, second: pj, intersecting: bool}. Here type is an integer
-// from 0 to 2; 0 = both are points; 1 = the first is an edge; 2 = the second is an edge.
-// Then indices is an array of two numbers, the first element of which is the index of the
-// point / edge on the first polygon, and the second the second. Finally first / second is
-// the point.
+// indices: array, first: pi, second: pj, intersecting: bool, simplex: simplex}. Here type
+// is an integer from 0 to 2; 0 = both are points; 1 = the first is an edge; 2 = the
+// second is an edge. Then indices is an array of two numbers, the first element of which
+// is the index of the point / edge on the first polygon, and the second the second. Also
+// first / second is the point. Finally simplex is returned only when the two objects
+// intersect, and it is used for the expanding polytope algorithm.
 
 game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
     var start            = game.support_in_minkowski_difference(rec1, rec2, initial_direction),
@@ -39,6 +40,7 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
                     first: rec1.vertices[simplex_array[0].first],
                     second: rec2.vertices[simplex_array[0].second],
                     intersecting: false,
+                    simplex: undefined,
                 };
                 found = true;
             } else if (simplex_array.length === 2) {
@@ -64,6 +66,7 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
                         first: target_point,
                         second: game.sub_vec(target_point, normal),
                         intersecting: false,
+                        simplex: undefined,
                     };
                     found = true;
                 } else if (simplex_array[0].second === simplex_array[1].second) {
@@ -87,11 +90,21 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
                         first: game.add_vec(target_point, normal),
                         second: target_point,
                         intersecting: false,
+                        simplex: undefined,
                     };
                     found = true;
                 } else {
                     // clearly this could be improved.
-                    throw("gjk: origin is between vertices of the minkowski sum that are not neighbours.");
+                    result = {
+                        type: undefined,
+                        indices: [],
+                        first: undefined,
+                        second: undefined,
+                        intersecting: true,
+                        simplex: simplex_array,
+                    };
+                    found = true;
+                    // throw("gjk: origin is between vertices of the minkowski sum that are not neighbours.");
                 }
             } else {
                 throw("gjk: too many points on the simplex array: " + simplex_array.length);
@@ -104,11 +117,12 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
             if (near_obj.contains_origin) {
                 found = true;
                 result = {
-                    type: null,
+                    type: undefined,
                     indices: [],
-                    first: null,
-                    second: null,
+                    first: undefined,
+                    second: undefined,
                     intersecting: true,
+                    simplex: near_obj.simplex,
                 };
             } else {
                 simplex_array    = near_obj.simplex;
@@ -236,7 +250,7 @@ game.nearest_simplex = function (arr) {
             }
         } else {
             result = {
-                simplex: null,
+                simplex: arr,
                 search_direction: null,
                 contains_origin: true,
             };
