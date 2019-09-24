@@ -4,6 +4,7 @@
 
 game.add_brick = (params) => {
     var vertices = params["vertices"] || [[0, 0], [0, 0], [0, 0], [0, 0]],
+        // actually density means mass in the game
         density  = params["density"]  || 1,
         color    = params["color"]    || "red",
         can_move = params["can_move"] || false,
@@ -22,6 +23,11 @@ game.add_brick = (params) => {
 
     game.envs.id += 1;
 
+   // calculate the moment of inertia 
+
+    var inertia = density * (game.sq_len_vec(game.sub_vec(vertices[1], vertices[0])) +
+                             game.sq_len_vec(game.sub_vec(vertices[2], vertices[1]))) / 12;
+
     var brick = {
         type             : 0,
         vertices         : vertices,
@@ -33,6 +39,7 @@ game.add_brick = (params) => {
         can_move         : can_move,
         id               : game.envs.id,
         constraint_solver: [],
+        inertia          : inertia / 10,
         vertices         : vertices,
 
         // center
@@ -59,7 +66,6 @@ game.add_brick = (params) => {
         //         this.vertices[i] = game.mul_mat_on_vec(move_matrix, [].concat(this.vertices[i], [1]));
         //     }
         // },
-        // TODO: This should be incorporated into a contact solver.
         get_in_screen: function () {
             var lengthx    = game.envs.width  / 2,
                 lengthy    = game.envs.height / 2,
@@ -114,19 +120,38 @@ game.add_brick = (params) => {
         //          [0   , 0        , 1]];
         // },
         update_position: function () {
-            var w    = this.w * Math.PI / 180,
-                cosw = Math.cos(this.w),
-                sinw = Math.sin(this.w),
-                cx   = this.c_x,
-                cy   = this.c_y;
+            var w                = this.w * Math.PI / 180,
+                cosw             = Math.cos(this.w),
+                sinw             = Math.sin(this.w),
+                cx               = this.c_x,
+                cy               = this.c_y,
+                done             = false,
+                constraint_count = 0,
+                constraint       = undefined;
 
+            // external forces
             this.vx += game.envs.gravity.x / this.density;
             this.vy += game.envs.gravity.y / this.density;
 
+            // constraint forces
             var solvers = this.constraint_solver;
 
-            for (var c = 0; c < solvers.length; c++) {
-                this.constraint_solver[c].solve();
+            while (!done && constraint_count < 10) {
+                constraint_count++;
+
+                // this.constraint_solver = this.constraint_solver.filter(function (e) {
+                //     return e.dead === 0;
+                // });
+
+                solvers = this.constraint_solver;
+
+                for (var c = 0; c < solvers.length; c++) {
+                    constraint = solvers[c];
+
+                    if (constraint.evaluate() > game.epsilon) {
+                        constraint.solve();
+                    }
+                }
             }
 
             for (var i = 0; i < this.vertices.length; i++) {
@@ -204,6 +229,7 @@ game.simulate_time = function (rec, time) {
         //                  [0   , 0        , 1]],
         new_brick     = {
             draw_obj: rec.draw_obj,
+            constraint_solver: rec.constraint_solver,
             vertices: [],
             color: rec.color,
             vx: rec.vx,

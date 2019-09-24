@@ -106,6 +106,11 @@ game.dot_prod = function (v1, v2) {
     return res;
 };
 
+// Cross product for two dimensional vectors, represented as a scalar.
+game.cross_2d = function (v1, v2) {
+    return v1[0] * v2[1] - v1[1] * v2[0];
+};
+
 game.det_for_vec = function (v1, v2) {
     return v1[0] * v2[1] - v1[1] * v2[0];
 };

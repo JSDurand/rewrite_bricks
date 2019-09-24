@@ -8,8 +8,8 @@ game.epsilon       = 0.001;
 
 game.find_root = function (func, start=0, end=1) {
     // First assure the function changes signs.
-    // debugger;
     if (func(start) * func(end) > game.epsilon) {
+        debugger;
         console.log(func(start));
         console.log(func(end));
         throw("root-finding: The function does not change sign from " + start + " to " + end);

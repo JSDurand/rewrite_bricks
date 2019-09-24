@@ -86,7 +86,6 @@ game.collision.statics = (obja, objb) => {
     }
 };
 
-// TODO: some optimisations
 game.collision.continuous = function (obja, objb) {
     // var p0   = performance.now();
     // The type of an object is either 0 or 1; 0 means rectangle and 1 means circle.
@@ -111,14 +110,12 @@ game.collision.continuous = function (obja, objb) {
         // First we do a simple bounding sphere test.
 
         // centers
-        var c1 = [obja.c_x(), obja.c_y()],
-            c2 = [objb.c_x(), objb.c_y()];
+        var c1 = [obja.c_x, obja.c_y],
+            c2 = [objb.c_x, objb.c_y];
 
         // velocities
         var v1 = [obja.vx, obja.vy],
-            v2 = [objb.vx, objb.vy],
-            w1 = obja.w,
-            w2 = objb.w;
+            v2 = [objb.vx, objb.vy];
 
         // radius
         var r1 = game.len_vec(game.sub_vec(ver1[0], c1)),
@@ -288,6 +285,14 @@ game.collision.point_plane = function (point, plane, start=0, end=1) {
     var separation_function = function (time) {
         return game.dot_prod(point(time), plane(time).normal) - plane(time).constant;
     };
+
+    if (separation_function(start) > 0 && separation_function(end) > 0) {
+        return false;
+    }
+
+    if (separation_function(start) < 0 && separation_function(end) < 0) {
+        return start;
+    }
 
     return game.find_root(separation_function, start, end);
 };
