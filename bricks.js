@@ -19,6 +19,10 @@ game.brick = function () {
     this.c_y               = undefined;
     // A force is an object of the form {x: fx, y: fy}.
     this.external_forces   = [game.envs.gravity];
+    // Used to solve constraints.
+    this.normal_impulse    = 0;
+    // The friction coefficient.
+    this.friction_coeff    = 0.5;
 
     this.translate = function (x, y) {
         for (var i = 0; i < this.vertices.length; i++) {
@@ -70,6 +74,10 @@ game.brick = function () {
     };
 
     this.update_position = function () {
+        if (this.can_move === false) {
+            return;
+        }
+
         var w                = this.w * Math.PI / 180,
             cosw             = Math.cos(w),
             sinw             = Math.sin(w),
@@ -88,18 +96,27 @@ game.brick = function () {
         }
 
         // constraint forces
+        this.constraint_solver = this.constraint_solver.filter(function (e) {
+            return e.dead === false;
+        });
+
         var solvers = this.constraint_solver;
 
-        while (!done && constraint_count < 10) {
-            constraint_count++;
+        for (var c = 0; c < solvers.length; c++) {
+            constraint = solvers[c];
 
-            for (var c = 0; c < solvers.length; c++) {
-                constraint = solvers[c];
-
-                if (constraint.evaluate() > game.epsilon) {
-                    constraint.solve();
-                }
+            if (constraint.evaluate() > game.epsilon) {
+                constraint.solve();
             }
+        }
+
+        // Maximum velocity should not be bypassed.
+
+        if (game.sq_len_vec([this.vx, this.vy]) >= Math.pow(game.envs.max_vel, 2)) {
+            var lambda = game.envs.max_vel / game.len_vec([this.vx, this.vy]);
+
+            this.vx *= lambda;
+            this.vy *= lambda;
         }
 
         for (var i = 0; i < this.vertices.length; i++) {
@@ -128,17 +145,20 @@ game.brick = function () {
                 line(pi[0], pi[1], pii[0], pii[1]);
             }
 
-            // for testing purposes
+            // Drawing joint constraints
             for (var c = 0; c < this.constraint_solver.length; c++) {
-                var solver = this.constraint_solver[c],
-                    bodyA  = solver.bodyA,
-                    bodyB  = solver.bodyB,
-                    p0     = game.translateCoordinate([bodyA.c_x, bodyA.c_y]),
-                    p1     = game.translateCoordinate([bodyB.c_x, bodyB.c_y]);
+                var solver = this.constraint_solver[c];
 
-                ellipse(p0[0], p0[1], 5, 5);
-                ellipse(p1[0], p1[1], 5, 5);
-                line(p0[0], p0[1], p1[0], p1[1]);
+                if (solver.type === "joint") {
+                    var bodyA  = solver.bodyA,
+                        bodyB  = solver.bodyB,
+                        p0     = game.translateCoordinate([bodyA.c_x, bodyA.c_y]),
+                        p1     = game.translateCoordinate([bodyB.c_x, bodyB.c_y]);
+
+                    ellipse(p0[0], p0[1], 5, 5);
+                    ellipse(p1[0], p1[1], 5, 5);
+                    line(p0[0], p0[1], p1[0], p1[1]);
+                }
             }
 
             // var p0     = game.translateCoordinate([this.c_x, this.c_y]),
@@ -169,12 +189,17 @@ game.add_brick = function (params) {
         ht       = params["height"]   || 0,
         density  = params["density"]  || 1,
         color    = params["color"]    || "red",
-        can_move = params["can_move"] || false,
         vx       = params["vx"]       || 0,
         vy       = params["vy"]       || 0,
         w        = params["w"]        || 0,
         angle    = params["angle"]    || 0,
         fake     = params["fake"]     || false;
+
+    var can_move = params["can_move"]; 
+
+    if (typeof(can_move) === "undefined") {
+        can_move = true;
+    }
 
     brick.vertices = [[center.x - wd / 2, center.y - ht / 2],
                       [center.x + wd / 2, center.y - ht / 2],

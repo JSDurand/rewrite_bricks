@@ -20,6 +20,7 @@ function setup () {
     game.envs.level   = 1;
     game.envs.id      = 0;
     game.envs.time    = 0;
+    game.envs.max_vel = 75;
     textSize(40);
 
     // For collision detection
@@ -29,28 +30,27 @@ function setup () {
     game.envs.contact_solvers = [];
 
     // some brick for testing
-    game.add_brick({color: "orange", w: 0, vx: 2,
-                    center: {x: -160, y: 0}, width: 80, height: 80});
-    game.add_brick({color: "red", vy: 1, w: 0, vx: 30,
-                    center: {x: 50, y: 50}, width: 80, height: 80,
-                    angle: 30});
-    game.add_brick({color: "gold", center: {x: 100, y: 100}, width: 50, height: 50});
-    game.add_brick({color: "purple", center: {x: 200, y: 100}, width: 100, height: 100});
+    game.add_brick({color: "orange", w: 0, vx: 0, vy: 0, can_move: true,
+                    center: {x: 160, y: 0}, width: 80, height: 80});
+    game.add_brick({color: "red", vy: 0, w: 2, vx: 1,
+                    center: {x: -50, y: 0}, width: 80, height: 80});
+    // game.add_brick({color: "gold", center: {x: 100, y: 100}, width: 50, height: 50});
+    // game.add_brick({color: "purple", center: {x: 200, y: 100}, width: 100, height: 100});
 
-    game.objects[1].constraint_solver[0]        = new game.constraint_solver();
-    game.objects[1].constraint_solver[0].bodyB  = game.objects[1];
-    game.objects[1].constraint_solver[0].bodyA  = game.add_brick({fake: true,});
-    game.objects[1].constraint_solver[0].radius = 200;
+    // game.objects[1].constraint_solver[0]        = new game.constraint_solver();
+    // game.objects[1].constraint_solver[0].bodyB  = game.objects[1];
+    // game.objects[1].constraint_solver[0].bodyA  = game.add_brick({fake: true,});
+    // game.objects[1].constraint_solver[0].radius = 200;
 
-    game.objects[2].constraint_solver[0]        = new game.constraint_solver();
-    game.objects[2].constraint_solver[0].bodyB  = game.objects[2];
-    game.objects[2].constraint_solver[0].bodyA  = game.objects[1];
-    game.objects[2].constraint_solver[0].radius = 100;
+    // game.objects[2].constraint_solver[0]        = new game.constraint_solver();
+    // game.objects[2].constraint_solver[0].bodyB  = game.objects[2];
+    // game.objects[2].constraint_solver[0].bodyA  = game.objects[1];
+    // game.objects[2].constraint_solver[0].radius = 100;
 
-    game.objects[0].constraint_solver[0]        = new game.constraint_solver();
-    game.objects[0].constraint_solver[0].bodyB  = game.objects[0];
-    game.objects[0].constraint_solver[0].bodyA  = game.objects[1];
-    game.objects[0].constraint_solver[0].radius = 150;
+    // game.objects[0].constraint_solver[0]        = new game.constraint_solver();
+    // game.objects[0].constraint_solver[0].bodyB  = game.objects[0];
+    // game.objects[0].constraint_solver[0].bodyA  = game.objects[1];
+    // game.objects[0].constraint_solver[0].radius = 150;
     
     game.update();
 

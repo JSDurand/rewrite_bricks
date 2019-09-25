@@ -48,13 +48,15 @@ game.update = () => {
                 game.envs.contact_solvers.push(contact);
             }
             
-            var gjk = game.gjk(game.simulate_time(obj , collision),
-                               game.simulate_time(obj2, collision));
-
-            // debugger;
             // Add a constraint.
-            constraint = game.make_non_penetration_solver(obj, obj2, 0.95, gjk.first, gjk.second, collision);
+            constraint = game.make_non_penetration_solver(obj, obj2, 0.95, collision);
             game.envs.collision_constraints.push(constraint);
+
+            constraint = game.make_friction_constraint(obj, obj2);
+            obj2.constraint_solver.push(constraint);
+
+            constraint = game.make_friction_constraint(obj2, obj);
+            obj.constraint_solver.push(constraint);
         }
     }
 

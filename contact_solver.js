@@ -41,8 +41,16 @@ game.make_contact_solver = function (bodyA, bodyB) {
         contact_info   = game.epa(bodyA, bodyB, gjk.simplex);
         contact_normal = game.scalar_vec(contact_info.distance, contact_info.normal);
 
-        bodyA.translate(-1 * contact_normal[0] * mA / (mA + mB), -1 * contact_normal[1] * mA / (mA + mB));
-        bodyB.translate(contact_normal[0] * mB / (mA + mB), contact_normal[1] * mB / (mA + mB));
+        if (bodyA.can_move && bodyB.can_move) {
+            bodyA.translate(-1 * contact_normal[0] * mB / (mA + mB), -1 * contact_normal[1] * mB / (mA + mB));
+            bodyB.translate(contact_normal[0] * mA / (mA + mB), contact_normal[1] * mA / (mA + mB));
+        } else if (bodyA.can_move) {
+            bodyA.translate(-1 * contact_normal[0], -1 * contact_normal[1]);
+        } else if (bodyB.can_move) {
+            bodyB.translate(contact_normal[0], contact_normal[1]);
+        } else {
+            console.log("two non-moving objects colliding!");
+        }
     };
 
     return solver;
