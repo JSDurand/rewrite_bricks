@@ -15,7 +15,7 @@ function setup () {
     game.envs.origin  = {x: game.envs.width/2,
                          y: game.envs.height / 2};
     game.envs.stop    = false;
-    game.envs.gravity = {x:0, y:0};
+    game.envs.gravity = {x:0, y:-5};
     game.envs.life    = 10;
     game.envs.level   = 1;
     game.envs.id      = 0;
@@ -30,71 +30,27 @@ function setup () {
 
     // some brick for testing
     game.add_brick({color: "orange", w: 0, vx: 2,
-                    vertices: [[-200, -40],
-                               [-120, -40],
-                               [-120, 40],
-                               [-200, 40]]});
+                    center: {x: -160, y: 0}, width: 80, height: 80});
     game.add_brick({color: "red", vy: 1, w: 0, vx: 30,
-                    vertices: [[100, 10],
-                               [130, 55],
-                               [85, 85],
-                               [55, 40]]});
-    // game.add_brick({color: "gold", vx: 30, vy: -1,
-    //                 vertices: [[5, -25],
-    //                            [25, 5],
-    //                            [-5, 25],
-    //                            [-25, -5]]});
+                    center: {x: 50, y: 50}, width: 80, height: 80,
+                    angle: 30});
+    game.add_brick({color: "gold", center: {x: 100, y: 100}, width: 50, height: 50});
+    game.add_brick({color: "purple", center: {x: 200, y: 100}, width: 100, height: 100});
 
     game.objects[1].constraint_solver[0]        = new game.constraint_solver();
     game.objects[1].constraint_solver[0].bodyB  = game.objects[1];
     game.objects[1].constraint_solver[0].bodyA  = game.add_brick({fake: true,});
     game.objects[1].constraint_solver[0].radius = 200;
-    // game.objects[0].constraint_solver[0].solve = function () {
-    //     var bodyA = this.bodyA,
-    //         cxA   = bodyA.c_x,
-    //         cyA   = bodyA.c_y,
-    //         bodyB = this.bodyB,
-    //         cxB   = bodyB.c_x,
-    //         cyB   = bodyB.c_y,
-    //         cx    = cxB - cxA,
-    //         cy    = cyB - cyA;
 
-    //     var tentative_velocity = [bodyB.vx - bodyA.vx, bodyB.vy - bodyA.vy],
-    //         jacobian           = [cx / 10, cy / 5],
-    //         effective_mass     = 1 / game.sq_len_vec(jacobian),
-    //         bias_factor        = 0.95,
-    //         constraint         = Math.abs(cx * cx / 10 + cy * cy / 5 - 1) / 2,
-    //         lambda             = -1 * effective_mass * (game.dot_prod(jacobian, tentative_velocity) + bias_factor * constraint),
-    //         impulse            = game.scalar_vec(lambda, jacobian);
+    game.objects[2].constraint_solver[0]        = new game.constraint_solver();
+    game.objects[2].constraint_solver[0].bodyB  = game.objects[2];
+    game.objects[2].constraint_solver[0].bodyA  = game.objects[1];
+    game.objects[2].constraint_solver[0].radius = 100;
 
-    //     this.bodyB.vx += impulse[0];
-    //     this.bodyB.vy += impulse[1];
-    // };
-
-    // game.objects[1].constraint_solver[0]       = new game.constraint_solver();
-    // game.objects[1].constraint_solver[0].bodyB = game.objects[1];
-    // game.objects[1].constraint_solver[0].bodyA = game.objects[0];
-    // game.objects[1].constraint_solver[0].solve = function () {
-    //     var bodyA = this.bodyA,
-    //         cxA   = bodyA.c_x,
-    //         cyA   = bodyA.c_y,
-    //         bodyB = this.bodyB,
-    //         cxB   = bodyB.c_x,
-    //         cyB   = bodyB.c_y,
-    //         cx    = cxB - cxA,
-    //         cy    = cyB - cyA;
-
-    //     var tentative_velocity = [bodyB.vx - bodyA.vx, bodyB.vy - bodyA.vy],
-    //         jacobian           = [cx / 10, cy / 5],
-    //         effective_mass     = 1 / game.sq_len_vec(jacobian),
-    //         bias_factor        = 0.95,
-    //         constraint         = Math.abs(cx * cx / 10 + cy * cy / 5 - 1) / 2,
-    //         lambda             = -1 * effective_mass * (game.dot_prod(jacobian, tentative_velocity) + bias_factor * constraint),
-    //         impulse            = game.scalar_vec(lambda, jacobian);
-
-    //     this.bodyB.vx += impulse[0];
-    //     this.bodyB.vy += impulse[1];
-    // };
+    game.objects[0].constraint_solver[0]        = new game.constraint_solver();
+    game.objects[0].constraint_solver[0].bodyB  = game.objects[0];
+    game.objects[0].constraint_solver[0].bodyA  = game.objects[1];
+    game.objects[0].constraint_solver[0].radius = 150;
     
     game.update();
 
@@ -140,3 +96,53 @@ game.centerCanvas = function () {
 function windowResized () {
   game.centerCanvas();
 }
+
+// ARCHIVE
+// Elliptic pendulum
+
+// game.objects[0].constraint_solver[0].solve = function () {
+//     var bodyA = this.bodyA,
+//         cxA   = bodyA.c_x,
+//         cyA   = bodyA.c_y,
+//         bodyB = this.bodyB,
+//         cxB   = bodyB.c_x,
+//         cyB   = bodyB.c_y,
+//         cx    = cxB - cxA,
+//         cy    = cyB - cyA;
+
+//     var tentative_velocity = [bodyB.vx - bodyA.vx, bodyB.vy - bodyA.vy],
+//         jacobian           = [cx / 10, cy / 5],
+//         effective_mass     = 1 / game.sq_len_vec(jacobian),
+//         bias_factor        = 0.95,
+//         constraint         = Math.abs(cx * cx / 10 + cy * cy / 5 - 1) / 2,
+//         lambda             = -1 * effective_mass * (game.dot_prod(jacobian, tentative_velocity) + bias_factor * constraint),
+//         impulse            = game.scalar_vec(lambda, jacobian);
+
+//     this.bodyB.vx += impulse[0];
+//     this.bodyB.vy += impulse[1];
+// };
+
+// game.objects[1].constraint_solver[0]       = new game.constraint_solver();
+// game.objects[1].constraint_solver[0].bodyB = game.objects[1];
+// game.objects[1].constraint_solver[0].bodyA = game.objects[0];
+// game.objects[1].constraint_solver[0].solve = function () {
+//     var bodyA = this.bodyA,
+//         cxA   = bodyA.c_x,
+//         cyA   = bodyA.c_y,
+//         bodyB = this.bodyB,
+//         cxB   = bodyB.c_x,
+//         cyB   = bodyB.c_y,
+//         cx    = cxB - cxA,
+//         cy    = cyB - cyA;
+
+//     var tentative_velocity = [bodyB.vx - bodyA.vx, bodyB.vy - bodyA.vy],
+//         jacobian           = [cx / 10, cy / 5],
+//         effective_mass     = 1 / game.sq_len_vec(jacobian),
+//         bias_factor        = 0.95,
+//         constraint         = Math.abs(cx * cx / 10 + cy * cy / 5 - 1) / 2,
+//         lambda             = -1 * effective_mass * (game.dot_prod(jacobian, tentative_velocity) + bias_factor * constraint),
+//         impulse            = game.scalar_vec(lambda, jacobian);
+
+//     this.bodyB.vx += impulse[0];
+//     this.bodyB.vy += impulse[1];
+// };
