@@ -22,9 +22,12 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
         edge_number      = undefined,
         line_vector      = undefined,
         normal           = undefined,
-        target_point     = undefined;
+        target_point     = undefined,
+        count            = 0;
 
-    while (!found) {
+    while (!found && count < 20) {
+        count++;
+        
         new_obj = game.support_in_minkowski_difference(rec1, rec2, search_direction);
         
         if (game.dot_prod(new_obj.point, search_direction) <

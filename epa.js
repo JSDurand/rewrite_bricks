@@ -15,7 +15,7 @@ game.epa = function (rec1, rec2, initial_simplex) {
         result   = {},
         count    = 0;
 
-    for (count = 0; count < 10; count++) {
+    for (count = 0; count < 20; count++) {
         edge     = game.closest_edge(rec1, rec2, simplex);
         support  = game.support_in_minkowski_difference(rec1, rec2, edge.normal);
         distance = game.dot_prod(support.point, edge.normal);

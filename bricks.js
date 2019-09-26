@@ -18,7 +18,7 @@ game.brick = function () {
     this.c_x               = undefined;
     this.c_y               = undefined;
     // A force is an object of the form {x: fx, y: fy}.
-    this.external_forces   = [game.envs.gravity];
+    this.external_forces   = [];
     // Used to solve constraints.
     this.normal_impulse    = 0;
     // The friction coefficient.
@@ -88,27 +88,27 @@ game.brick = function () {
             constraint       = undefined;
 
         // external forces
-        for (var ex_force = 0; ex_force < this.external_forces.length; ex_force++) {
-            var force = this.external_forces[ex_force];
+        // for (var ex_force = 0; ex_force < this.external_forces.length; ex_force++) {
+        //     var force = this.external_forces[ex_force];
 
-            this.vx += force.x / this.density;
-            this.vy += force.y / this.density;
-        }
+        //     this.vx += force.x;
+        //     this.vy += force.y;
+        // }
 
         // constraint forces
-        this.constraint_solver = this.constraint_solver.filter(function (e) {
-            return e.dead === false;
-        });
+        // this.constraint_solver = this.constraint_solver.filter(function (e) {
+        //     return e.dead === false;
+        // });
 
-        var solvers = this.constraint_solver;
+        // var solvers = this.constraint_solver;
 
-        for (var c = 0; c < solvers.length; c++) {
-            constraint = solvers[c];
+        // for (var c = 0; c < solvers.length; c++) {
+        //     constraint = solvers[c];
 
-            if (constraint.evaluate() > game.epsilon) {
-                constraint.solve();
-            }
-        }
+        //     if (constraint.evaluate() > game.epsilon) {
+        //         constraint.solve();
+        //     }
+        // }
 
         // Maximum velocity should not be bypassed.
 
@@ -117,6 +117,10 @@ game.brick = function () {
 
             this.vx *= lambda;
             this.vy *= lambda;
+        }
+
+        if (Math.abs(this.w) >= game.envs.max_vel) {
+            this.w = Math.sign(this.w) * game.envs.max_vel;
         }
 
         for (var i = 0; i < this.vertices.length; i++) {
@@ -137,46 +141,30 @@ game.brick = function () {
     };
 
     this.draw_obj = function () {
-            stroke(this.color);
-            
-            for (var i = 0; i < this.vertices.length; i++) {
-                var pi  = game.translateCoordinate(this.vertices[i]);
-                var pii = game.translateCoordinate(this.vertices[(i+1) % this.vertices.length]);
-                line(pi[0], pi[1], pii[0], pii[1]);
+        stroke(this.color);
+        
+        for (var i = 0; i < this.vertices.length; i++) {
+            var pi  = game.translateCoordinate(this.vertices[i]);
+            var pii = game.translateCoordinate(this.vertices[(i+1) % this.vertices.length]);
+            line(pi[0], pi[1], pii[0], pii[1]);
+        }
+
+        // Drawing joint constraints
+        for (var c = 0; c < this.constraint_solver.length; c++) {
+            var solver = this.constraint_solver[c];
+
+            if (solver.type === "joint") {
+                var bodyA  = solver.bodyA,
+                    bodyB  = solver.bodyB,
+                    p0     = game.translateCoordinate([bodyA.c_x, bodyA.c_y]),
+                    p1     = game.translateCoordinate([bodyB.c_x, bodyB.c_y]);
+
+                ellipse(p0[0], p0[1], 5, 5);
+                ellipse(p1[0], p1[1], 5, 5);
+                line(p0[0], p0[1], p1[0], p1[1]);
             }
-
-            // Drawing joint constraints
-            for (var c = 0; c < this.constraint_solver.length; c++) {
-                var solver = this.constraint_solver[c];
-
-                if (solver.type === "joint") {
-                    var bodyA  = solver.bodyA,
-                        bodyB  = solver.bodyB,
-                        p0     = game.translateCoordinate([bodyA.c_x, bodyA.c_y]),
-                        p1     = game.translateCoordinate([bodyB.c_x, bodyB.c_y]);
-
-                    ellipse(p0[0], p0[1], 5, 5);
-                    ellipse(p1[0], p1[1], 5, 5);
-                    line(p0[0], p0[1], p1[0], p1[1]);
-                }
-            }
-
-            // var p0     = game.translateCoordinate([this.c_x, this.c_y]),
-            //     origin = game.translateCoordinate([0, 0]);
-
-            // ellipse(p0[0], p0[1], 5, 5);
-            // ellipse(origin[0], origin[1], 5, 5);
-            // line(p0[0], p0[1], origin[0], origin[1]);
-
-            // fill("black");
-            // beginShape();
-            // for (var i = 0; i < this.vertices.length; i++) {
-            //     var pi = game.translateCoordinate(vertices[i]);
-            //     vertex(pi[0], pi[1]);
-            // }
-            // vertex(game.translateCoordinate(vertices[0])[0], game.translateCoordinate(vertices[0])[1]);
-            // endShape();
-        };
+        }
+    };
 };
 
 game.add_brick = function (params) {
@@ -199,6 +187,10 @@ game.add_brick = function (params) {
 
     if (typeof(can_move) === "undefined") {
         can_move = true;
+    }
+
+    if (fake) {
+        can_move = false;
     }
 
     brick.vertices = [[center.x - wd / 2, center.y - ht / 2],
@@ -224,20 +216,26 @@ game.add_brick = function (params) {
     // ignore it for now.
     var inertia = density * (wd * wd + ht * ht) / 10;
 
+    // if (inertia === 0) {
+    //     inertia = 1;
+    // }
+
     game.envs.id++;
 
-    brick.c_x      = center.x;
-    brick.c_y      = center.y;
-    brick.vx       = vx;
-    brick.vy       = vy;
-    brick.w        = w;
-    brick.color    = color;
-    brick.density  = density;
-    brick.can_move = can_move;
-    brick.width    = wd;
-    brick.height   = ht;
-    brick.id       = game.envs.id;
-    brick.inertia  = inertia;
+    brick.c_x             = center.x;
+    brick.c_y             = center.y;
+    brick.external_forces = [{x: game.envs.gravity.x * density,
+                              y: game.envs.gravity.y * density}];
+    brick.vx              = vx;
+    brick.vy              = vy;
+    brick.w               = w;
+    brick.color           = color;
+    brick.density         = density;
+    brick.can_move        = can_move;
+    brick.width           = wd;
+    brick.height          = ht;
+    brick.id              = game.envs.id;
+    brick.inertia         = inertia;
 
     if (!fake) {
         game.objects.push(brick);
@@ -526,3 +524,20 @@ game.simulate_time = function (rec, time) {
 
 //     return brick;
 // };
+
+
+// var p0     = game.translateCoordinate([this.c_x, this.c_y]),
+//     origin = game.translateCoordinate([0, 0]);
+
+// ellipse(p0[0], p0[1], 5, 5);
+// ellipse(origin[0], origin[1], 5, 5);
+// line(p0[0], p0[1], origin[0], origin[1]);
+
+// fill("black");
+// beginShape();
+// for (var i = 0; i < this.vertices.length; i++) {
+//     var pi = game.translateCoordinate(vertices[i]);
+//     vertex(pi[0], pi[1]);
+// }
+// vertex(game.translateCoordinate(vertices[0])[0], game.translateCoordinate(vertices[0])[1]);
+// endShape();

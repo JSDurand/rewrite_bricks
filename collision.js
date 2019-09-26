@@ -508,7 +508,8 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
                     return result;
                 };
             } else {
-                throw("polygon_polygon: the two polygons should not intersect. WHy is this happening?");
+                debugger;
+                throw("polygon_polygon: the two polygons should not intersect. Why is this happening?");
             }
             
             possible_result = game.collision.polygon_plane(polygon1, plane, possible_time);
@@ -521,6 +522,8 @@ game.collision.polygon_polygon = function (polygon1, polygon2) {
 
             break;
         default:
+            // debugger;
+            // return 0;
             throw("polygon_polygon: GJK should return a type from 0 to 2, but we got: " + gjk.type);
             break;
         }

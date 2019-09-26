@@ -15,7 +15,7 @@ function setup () {
     game.envs.origin  = {x: game.envs.width/2,
                          y: game.envs.height / 2};
     game.envs.stop    = false;
-    game.envs.gravity = {x:0, y:-5};
+    game.envs.gravity = {x:0, y:-0.3};
     game.envs.life    = 10;
     game.envs.level   = 1;
     game.envs.id      = 0;
@@ -23,34 +23,40 @@ function setup () {
     game.envs.max_vel = 75;
     textSize(40);
 
-    // For collision detection
-    game.envs.collision_constraints = [];
+    game.envs.constraint_solvers = [];
 
     // For contact solving
     game.envs.contact_solvers = [];
 
     // some brick for testing
-    game.add_brick({color: "orange", w: 0, vx: 0, vy: 0, can_move: true,
-                    center: {x: 160, y: 0}, width: 80, height: 80});
-    game.add_brick({color: "red", vy: 0, w: 2, vx: 1,
-                    center: {x: -50, y: 0}, width: 80, height: 80});
-    // game.add_brick({color: "gold", center: {x: 100, y: 100}, width: 50, height: 50});
-    // game.add_brick({color: "purple", center: {x: 200, y: 100}, width: 100, height: 100});
+    game.add_brick({color: "gold", center: {x: 0, y: 0}, width: 20, height: 20});
+    game.add_brick({color: "gold", center: {x: 60, y: 0}, width: 20, height: 20});
+    game.add_brick({color: "gold", center: {x: 30, y: 51.96}, width: 20, height: 20});
+    game.add_brick({color: "gold", center: {x: 0, y: 103.92}, width: 20, height: 20});
+    game.add_brick({color: "gold", center: {x: 60, y: 103.92}, width: 20, height: 20});
+    // game.add_brick({color: "gold", center: {x: 0, y: 30}, width: 20, height: 20});
+    // game.add_brick({color: "gold", center: {x: 60, y: -60}, width: 20, height: 20});
+    // game.add_brick({color: "red", center: {x: -50, y: -80}, width: 20, height: 20});
 
-    // game.objects[1].constraint_solver[0]        = new game.constraint_solver();
-    // game.objects[1].constraint_solver[0].bodyB  = game.objects[1];
-    // game.objects[1].constraint_solver[0].bodyA  = game.add_brick({fake: true,});
-    // game.objects[1].constraint_solver[0].radius = 200;
+    // var fake_brick = game.add_brick({fake: true});
 
-    // game.objects[2].constraint_solver[0]        = new game.constraint_solver();
-    // game.objects[2].constraint_solver[0].bodyB  = game.objects[2];
-    // game.objects[2].constraint_solver[0].bodyA  = game.objects[1];
-    // game.objects[2].constraint_solver[0].radius = 100;
+    var solver0    = game.make_joint_solver(game.objects[0], game.objects[1], 60, 0.5),
+        solver1    = game.make_joint_solver(game.objects[1], game.objects[2], 60, 0.5),
+        solver2    = game.make_joint_solver(game.objects[2], game.objects[0], 60, 0.5),
+        solver3    = game.make_joint_solver(game.objects[2], game.objects[3], 60, 0.5),
+        solver4    = game.make_joint_solver(game.objects[3], game.objects[4], 60, 0.5),
+        solver5    = game.make_joint_solver(game.objects[4], game.objects[2], 60, 0.5),
+        solver6    = game.make_joint_solver(game.objects[1], game.objects[4], 103.92, 0.5),
+        solver7    = game.make_joint_solver(game.objects[0], game.objects[3], 103.92, 0.5);
 
-    // game.objects[0].constraint_solver[0]        = new game.constraint_solver();
-    // game.objects[0].constraint_solver[0].bodyB  = game.objects[0];
-    // game.objects[0].constraint_solver[0].bodyA  = game.objects[1];
-    // game.objects[0].constraint_solver[0].radius = 150;
+    game.envs.constraint_solvers.push(solver0);
+    game.envs.constraint_solvers.push(solver1);
+    game.envs.constraint_solvers.push(solver2);
+    game.envs.constraint_solvers.push(solver3);
+    game.envs.constraint_solvers.push(solver4);
+    game.envs.constraint_solvers.push(solver5);
+    game.envs.constraint_solvers.push(solver6);
+    game.envs.constraint_solvers.push(solver7);
     
     game.update();
 

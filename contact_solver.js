@@ -37,6 +37,10 @@ game.make_contact_solver = function (bodyA, bodyB) {
             return;
         }
 
+        if (typeof(gjk.simplex) === "undefined") {
+            return;
+        }
+
         // Normal points from the first to the second.
         contact_info   = game.epa(bodyA, bodyB, gjk.simplex);
         contact_normal = game.scalar_vec(contact_info.distance, contact_info.normal);
