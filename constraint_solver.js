@@ -237,7 +237,6 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias=0.4, impact_time
     };
 
     solver.solve = function () {
-        // FIXME: Add restitution!
         var bodyA  = this.bodyA,
             mA     = this.mA,
             bodyB  = this.bodyB,
@@ -250,7 +249,7 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias=0.4, impact_time
             effective_mass     = this.effective_mass,
             bias_factor        = this.bias,
             constraint         = this.evaluate_position(),
-            lambda             = -1 * effective_mass * (0.3 * game.dot_prod(jacobian, tentative_velocity)
+            lambda             = -1 * effective_mass * (0.6 * game.dot_prod(jacobian, tentative_velocity)
                                                         - bias_factor * constraint / (1 - this.impact_time)),
             old_acc            = this.acc_lambda;
 
@@ -259,6 +258,9 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias=0.4, impact_time
         if (this.acc_lambda < 0) {
             this.acc_lambda = 0;
         }
+
+        bodyA.normal_impulse = -this.acc_lambda;
+        bodyB.normal_impulse =  this.acc_lambda;
 
         lambda = this.acc_lambda - old_acc;
 
@@ -282,24 +284,67 @@ game.make_non_penetration_solver = function (bodyA, bodyB, bias=0.4, impact_time
     return solver;
 };
 
+game.make_motor_constraint = function (body, omega) {
+    var solver = new game.constraint_solver();
+
+    solver.bodyA = body;
+    solver.omega = omega;
+    solver.type  = "motor";
+
+    solver.evaluate_velocity = function () {
+        return this.bodyA.w === this.omega;
+    };
+
+    solver.solve = function () {
+        if (this.bodyA.can_move) {
+            this.bodyA.w = this.omega;
+        }
+    };
+
+    return solver;
+};
 
 // Clamping operation
 game.clamp = function (x, min, max) {
     return Math.min(max, Math.max(x, min));
 };
 
+// TODO: Implement a friction constraint.
 game.make_friction_constraint = function (bodyA, bodyB) {
-    var solver = new game.constraint_solver(),
-        cxA    = bodyA.c_x,
-        cyA    = bodyA.c_y,
-        cxB    = bodyB.c_x,
-        cyB    = bodyB.c_y,
-        cx     = cxB - cxA,
-        cy     = cyB - cyA,
-        normal = undefined,
-        pointA = undefined,
-        pointB = undefined,
-        gjk    = game.gjk(bodyA, bodyB);
+    var solver  = new game.constraint_solver(),
+        cxA     = bodyA.c_x,
+        cyA     = bodyA.c_y,
+        cA      = [cxA, cyA],
+        cxB     = bodyB.c_x,
+        cyB     = bodyB.c_y,
+        cB      = [cxB, cyB],
+        cx      = cxB - cxA,
+        cy      = cyB - cyA,
+        normal  = undefined,
+        tangent = undefined,
+        pointA  = undefined,
+        pointB  = undefined,
+        gjk     = game.gjk(bodyA, bodyB),
+        mA      = 1 / bodyA.density,
+        mB      = 1 / bodyB.density,
+        iA      = 1 / bodyA.inertia,
+        iB      = 1 / bodyB.inertia;
+
+    if (mA === Infinity) {
+        mA = 0;
+    }
+
+    if (mB === Infinity) {
+        mB = 0;
+    }
+
+    if (iA === Infinity) {
+        iA = 0;
+    }
+
+    if (iB === Infinity) {
+        iB = 0;
+    }
 
     solver.type = "friction";
 
@@ -320,61 +365,73 @@ game.make_friction_constraint = function (bodyA, bodyB) {
         normal = game.epa(bodyA, bodyB, gjk.simplex).normal;
     }
 
-    solver.bodyA   = bodyA;
-    solver.bodyB   = bodyB;
-    // The direction does not matter.
-    solver.tangent = game.unit_normal(normal);
-    solver.pointA  = pointA;
-    solver.pointB  = pointB;
+    tangent = game.unit_normal(normal);
 
-    solver.evaluate = function () {
+    solver.mA             = mA;
+    solver.mB             = mA;
+    solver.iA             = iA;
+    solver.iB             = iA;
+    solver.acc_lambda     = 0;
+    solver.gjk            = gjk;
+    solver.bodyA          = bodyA;
+    solver.bodyB          = bodyB;
+    // The direction does not matter.
+    solver.tangent        = tangent;
+    solver.pointA         = pointA;
+    solver.pointB         = pointB;
+    solver.jacobian       = [tangent[0], tangent[1], game.cross_2d(game.sub_vec(pointA, cA), tangent),
+                             tangent[0], tangent[1], game.cross_2d(game.sub_vec(pointB, cB), tangent)];
+    solver.effective_mass = 1 / (mA + mB +
+                                 iA * Math.pow(solver.jacobian[2], 2) +
+                                 iB * Math.pow(solver.jacobian[5], 2));
+
+    solver.evaluate_velocity = function () {
         var bodyA              = this.bodyA,
             bodyB              = this.bodyB,
-            tentative_velocity = [bodyB.vx, bodyB.vy, bodyB.w],
-            cxB                = bodyB.c_x,
-            cyB                = bodyB.c_y,
-            cB                 = [cxB, cyB],
-            mB                 = 1 / bodyB.density,
-            iB                 = 1 / bodyB.inertia,
-            jacobian           = [this.tangent[0], this.tangent[1],
-                                  game.cross_2d(game.sub_vec(pointA, cB), this.tangent)];
+            tentative_velocity = [bodyA.vx, bodyA.vy, bodyA.w, bodyB.vx, bodyB.vy, bodyB.w],
+            jacobian           = this.jacobian;
 
-        return game.dot_prod(jacobian, tentative_velocity);
+        return game.dot_prod(jacobian, tentative_velocity) === 0;
     };
 
     solver.solve = function () {
         var bodyA              = this.bodyA,
-            mA                 = 1 / bodyA.density,
-            iA                 = 1 / bodyA.inertia,
+            mA                 = this.mA,
+            iA                 = this.iA,
             bodyB              = this.bodyB,
-            tentative_velocity = [bodyB.vx, bodyB.vy, bodyB.w],
-            cxB                = bodyB.c_x,
-            cyB                = bodyB.c_y,
-            cB                 = [cxB, cyB],
-            mB                 = 1 / bodyB.density,
-            iB                 = 1 / bodyB.inertia,
-            jacobian           = [this.tangent[0], this.tangent[1],
-                                  game.cross_2d(game.sub_vec(pointA, cB), this.tangent)],
-            effective_mass     = 1 / (mB + iB * Math.pow(jacobian[2], 2)),
+            mB                 = this.mB,
+            iB                 = this.iB,
+            tentative_velocity = [bodyA.vx, bodyA.vy, bodyA.w, bodyB.vx, bodyB.vy, bodyB.w],
+            jacobian           = this.jacobian,
+            effective_mass     = this.effective_mass,
             lambda             = -1 * effective_mass * (game.dot_prod(jacobian, tentative_velocity)),
-            normal_impulse     = bodyB.normal_impulse,
-            friction_coeff     = bodyB.friction_coeff,
-            clamped_lambda     = game.clamp(lambda,
-                                            -friction_coeff * normal_impulse,
-                                            friction_coeff * normal_impulse),
-            impulse            = game.scalar_vec(1.2 * lambda, jacobian);
+            old_acc            = this.acc_lambda,
+            normal_impulse_A   = bodyA.normal_impulse,
+            normal_impulse_B   = bodyB.normal_impulse,
+            normal_impulse     = (Math.abs(normal_impulse_A) + Math.abs(normal_impulse_B)) / 2,
+            friction_coeff_A   = bodyA.friction_coeff,
+            friction_coeff_B   = bodyB.friction_coeff,
+            friction_coeff     = (friction_coeff_A + friction_coeff_B) / 2,
+            impulse            = undefined;
 
+        this.acc_lambda += lambda;
+
+        this.acc_lambda = game.clamp(this.acc_lambda, -friction_coeff * normal_impulse,
+                                     friction_coeff * normal_impulse);
+
+        lambda  = this.acc_lambda - old_acc;
+        impulse = game.scalar_vec(lambda, jacobian);
+
+        if (bodyA.can_move) {
+            this.bodyA.vx += impulse[0] * mA;
+            this.bodyA.vy += impulse[1] * mA;
+            this.bodyA.w  += impulse[2] * iA;
+        }
 
         if (bodyB.can_move) {
-            this.bodyB.vx += impulse[0] * mB;
-            this.bodyB.vy += impulse[1] * mB;
-            this.bodyB.w  += impulse[2] * iB;
-
-            // if (bodyA.can_move === false) {
-            //     this.bodyB.vx -= impulse[0] * mA;
-            //     this.bodyB.vy -= impulse[1] * mA;
-            //     this.bodyB.w  -= impulse[2] * iA;
-            // }
+            this.bodyB.vx += impulse[3] * mB;
+            this.bodyB.vy += impulse[4] * mB;
+            this.bodyB.w  += impulse[5] * iB;
         }
 
         this.dead = true;
@@ -382,6 +439,9 @@ game.make_friction_constraint = function (bodyA, bodyB) {
 
     return solver;
 };
+
+
+// ARCHIVE
 
 // test
 // game.constraint_solver.prototype.solve = function () {
@@ -431,6 +491,7 @@ game.make_friction_constraint = function (bodyA, bodyB) {
 //     this.bodyB.w  += impulse[5] * iB;
 // }
 
-// debugger;
-
-
+// clamped_lambda     = game.clamp(lambda,
+//                                 -friction_coeff * normal_impulse,
+//                                 friction_coeff * normal_impulse),
+// impulse            = game.scalar_vec(1.2 * lambda, jacobian);

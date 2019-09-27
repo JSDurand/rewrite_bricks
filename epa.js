@@ -16,6 +16,9 @@ game.epa = function (rec1, rec2, initial_simplex) {
         count    = 0;
 
     for (count = 0; count < 20; count++) {
+        // if (typeof(simplex) === "undefined" || isNaN(simplex[0].point[0])) {
+        //     debugger;
+        // }
         edge     = game.closest_edge(rec1, rec2, simplex);
         support  = game.support_in_minkowski_difference(rec1, rec2, edge.normal);
         distance = game.dot_prod(support.point, edge.normal);
@@ -72,6 +75,12 @@ game.closest_edge = function (rec1, rec2, simplex) {
                                               edge));
 
         distance = game.len_vec(normal);
+
+        if (distance === 0) {
+            result.distance = 0;
+            result.normal = game.unit_normal(edge);
+            result.index = edge_index;
+        }
 
         if (distance < result.distance) {
             result.distance = distance;

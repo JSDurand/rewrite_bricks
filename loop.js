@@ -45,10 +45,7 @@ game.update = () => {
             game.envs.constraint_solvers.push(constraint);
 
             // constraint = game.make_friction_constraint(obj, obj2);
-            // obj2.constraint_solver.push(constraint);
-
-            // constraint = game.make_friction_constraint(obj2, obj);
-            // obj.constraint_solver.push(constraint);
+            // game.envs.constraint_solvers.push(constraint);
         }
     }
 

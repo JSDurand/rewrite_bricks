@@ -5,7 +5,12 @@ function keyPressed () {
         game.envs.stop = !game.envs.stop;
     }
     if (key === 'U') {
+        if (game.objects[0].c_x === 0 && game.objects[0].c_y === 0) {
+            return;
+        }
+ 
         var velocity = game.unit_normal([game.objects[0].c_x, game.objects[0].c_y]);
+
         game.objects[0].vx -= 20 * velocity[0];
         game.objects[0].vy -= 20 * velocity[1];
     }

@@ -17,14 +17,19 @@ game.brick = function () {
     this.inertia           = undefined;
     this.c_x               = undefined;
     this.c_y               = undefined;
+    this.angle_only        = false;
     // A force is an object of the form {x: fx, y: fy}.
     this.external_forces   = [];
-    // Used to solve constraints.
+    // For the determination of frictions.
     this.normal_impulse    = 0;
     // The friction coefficient.
     this.friction_coeff    = 0.5;
 
     this.translate = function (x, y) {
+        if (this.angle_only || this.can_move === false) {
+            return;
+        }
+
         for (var i = 0; i < this.vertices.length; i++) {
             var vi = this.vertices[i],
                 vx = vi[0],
@@ -78,6 +83,11 @@ game.brick = function () {
             return;
         }
 
+        if (this.angle_only) {
+            this.vx = 0;
+            this.vy = 0;
+        }
+
         var w                = this.w * Math.PI / 180,
             cosw             = Math.cos(w),
             sinw             = Math.sin(w),
@@ -86,29 +96,6 @@ game.brick = function () {
             done             = false,
             constraint_count = 0,
             constraint       = undefined;
-
-        // external forces
-        // for (var ex_force = 0; ex_force < this.external_forces.length; ex_force++) {
-        //     var force = this.external_forces[ex_force];
-
-        //     this.vx += force.x;
-        //     this.vy += force.y;
-        // }
-
-        // constraint forces
-        // this.constraint_solver = this.constraint_solver.filter(function (e) {
-        //     return e.dead === false;
-        // });
-
-        // var solvers = this.constraint_solver;
-
-        // for (var c = 0; c < solvers.length; c++) {
-        //     constraint = solvers[c];
-
-        //     if (constraint.evaluate() > game.epsilon) {
-        //         constraint.solve();
-        //     }
-        // }
 
         // Maximum velocity should not be bypassed.
 
@@ -150,20 +137,20 @@ game.brick = function () {
         }
 
         // Drawing joint constraints
-        for (var c = 0; c < this.constraint_solver.length; c++) {
-            var solver = this.constraint_solver[c];
+        // for (var c = 0; c < this.constraint_solver.length; c++) {
+        //     var solver = this.constraint_solver[c];
 
-            if (solver.type === "joint") {
-                var bodyA  = solver.bodyA,
-                    bodyB  = solver.bodyB,
-                    p0     = game.translateCoordinate([bodyA.c_x, bodyA.c_y]),
-                    p1     = game.translateCoordinate([bodyB.c_x, bodyB.c_y]);
+        //     if (solver.type === "joint") {
+        //         var bodyA  = solver.bodyA,
+        //             bodyB  = solver.bodyB,
+        //             p0     = game.translateCoordinate([bodyA.c_x, bodyA.c_y]),
+        //             p1     = game.translateCoordinate([bodyB.c_x, bodyB.c_y]);
 
-                ellipse(p0[0], p0[1], 5, 5);
-                ellipse(p1[0], p1[1], 5, 5);
-                line(p0[0], p0[1], p1[0], p1[1]);
-            }
-        }
+        //         ellipse(p0[0], p0[1], 5, 5);
+        //         ellipse(p1[0], p1[1], 5, 5);
+        //         line(p0[0], p0[1], p1[0], p1[1]);
+        //     }
+        // }
     };
 };
 
@@ -183,10 +170,15 @@ game.add_brick = function (params) {
         angle    = params["angle"]    || 0,
         fake     = params["fake"]     || false;
 
-    var can_move = params["can_move"]; 
+    var can_move   = params["can_move"],
+        angle_only = params["angle_only"];
 
     if (typeof(can_move) === "undefined") {
         can_move = true;
+    }
+
+    if (typeof(angle_only) === "undefined") {
+        angle_only = false;
     }
 
     if (fake) {
@@ -232,6 +224,7 @@ game.add_brick = function (params) {
     brick.color           = color;
     brick.density         = density;
     brick.can_move        = can_move;
+    brick.angle_only      = angle_only;
     brick.width           = wd;
     brick.height          = ht;
     brick.id              = game.envs.id;

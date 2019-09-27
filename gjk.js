@@ -134,6 +134,17 @@ game.gjk = function (rec1, rec2, initial_direction=[1,0]) {
         }
     }
 
+    if (typeof(result.intersecting) === "undefined") {
+        result = {
+            type: undefined,
+            indices: [],
+            first: undefined,
+            second: undefined,
+            intersecting: true,
+            simplex: simplex_array,
+        };
+    }
+
     return result;
 };
 

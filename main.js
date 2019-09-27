@@ -23,55 +23,45 @@ function setup () {
     game.envs.max_vel = 75;
     textSize(40);
 
+    // For constraint solving
     game.envs.constraint_solvers = [];
 
     // For contact solving
     game.envs.contact_solvers = [];
 
     // some brick for testing
-    game.add_brick({color: "gold", center: {x: 0, y: 0}, width: 20, height: 20});
-    game.add_brick({color: "gold", center: {x: 60, y: 0}, width: 20, height: 20});
-    game.add_brick({color: "gold", center: {x: 30, y: 51.96}, width: 20, height: 20});
-    game.add_brick({color: "gold", center: {x: 0, y: 103.92}, width: 20, height: 20});
-    game.add_brick({color: "gold", center: {x: 60, y: 103.92}, width: 20, height: 20});
+    game.add_brick({color: "gold", center: {x: 60, y: 0}, width: 40, height: 40, angle: 30});
+    game.add_brick({color: "gold", center: {x: 60, y: 60}, width: 40, height: 40});
+    // game.add_brick({color: "gold", center: {x: 30, y: 51.96}, width: 40, height: 40});
+    // game.add_brick({color: "gold", center: {x: 0, y: 103.92}, width: 40, height: 40});
+    // game.add_brick({color: "gold", center: {x: 60, y: 103.92}, width: 40, height: 40});
     // game.add_brick({color: "gold", center: {x: 0, y: 30}, width: 20, height: 20});
     // game.add_brick({color: "gold", center: {x: 60, y: -60}, width: 20, height: 20});
     // game.add_brick({color: "red", center: {x: -50, y: -80}, width: 20, height: 20});
 
     // var fake_brick = game.add_brick({fake: true});
 
-    var solver0    = game.make_joint_solver(game.objects[0], game.objects[1], 60, 0.5),
-        solver1    = game.make_joint_solver(game.objects[1], game.objects[2], 60, 0.5),
-        solver2    = game.make_joint_solver(game.objects[2], game.objects[0], 60, 0.5),
-        solver3    = game.make_joint_solver(game.objects[2], game.objects[3], 60, 0.5),
-        solver4    = game.make_joint_solver(game.objects[3], game.objects[4], 60, 0.5),
-        solver5    = game.make_joint_solver(game.objects[4], game.objects[2], 60, 0.5),
-        solver6    = game.make_joint_solver(game.objects[1], game.objects[4], 103.92, 0.5),
-        solver7    = game.make_joint_solver(game.objects[0], game.objects[3], 103.92, 0.5);
+    // var solver0 = game.make_joint_solver(game.objects[0], game.objects[1], 60, 0.5),
+    //     solver1 = game.make_joint_solver(game.objects[1], game.objects[2], 60, 0.5),
+    //     solver2 = game.make_joint_solver(game.objects[2], game.objects[0], 60, 0.5),
+    //     solver3 = game.make_joint_solver(game.objects[2], game.objects[3], 60, 0.5),
+    //     solver4 = game.make_joint_solver(game.objects[3], game.objects[4], 60, 0.5),
+    //     solver5 = game.make_joint_solver(game.objects[4], game.objects[2], 60, 0.5),
+    //     solver6 = game.make_joint_solver(game.objects[1], game.objects[4], 103.92, 0.5),
+    //     solver7 = game.make_joint_solver(game.objects[0], game.objects[3], 103.92, 0.5);
+        // solver8 = game.make_motor_constraint(game.objects[0], 10);
 
-    game.envs.constraint_solvers.push(solver0);
-    game.envs.constraint_solvers.push(solver1);
-    game.envs.constraint_solvers.push(solver2);
-    game.envs.constraint_solvers.push(solver3);
-    game.envs.constraint_solvers.push(solver4);
-    game.envs.constraint_solvers.push(solver5);
-    game.envs.constraint_solvers.push(solver6);
-    game.envs.constraint_solvers.push(solver7);
+    // game.envs.constraint_solvers.push(solver0);
+    // game.envs.constraint_solvers.push(solver1);
+    // game.envs.constraint_solvers.push(solver2);
+    // game.envs.constraint_solvers.push(solver3);
+    // game.envs.constraint_solvers.push(solver4);
+    // game.envs.constraint_solvers.push(solver5);
+    // game.envs.constraint_solvers.push(solver6);
+    // game.envs.constraint_solvers.push(solver7);
+    // game.envs.constraint_solvers.push(solver8);
     
     game.update();
-
-    // for testing
-    // test_polygon1 = function (time) {return game.simulate_time(game.objects[0], time);};
-    // test_polygon2 = function (time) {return game.simulate_time(game.objects[1], time);};
-
-    // var obj = game.gjk(game.objects[0], game.objects[1]);
-
-    // ellipse(game.translateCoordinate(obj.first)[0], game.translateCoordinate(obj.first)[1], 5, 5);
-    // ellipse(game.translateCoordinate(obj.second)[0], game.translateCoordinate(obj.second)[1], 5, 5);
-    // game.envs.mysize = width/10;
-    // game.envs.diff = height/10;
-    // game.envs.vshift = height/3 - game.constants.defaultWidth/2;
-    // game.envs.hshift = width/3 - game.constants.defaultHeight/2;
 }
 
 function draw() {

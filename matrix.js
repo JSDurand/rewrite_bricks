@@ -128,7 +128,13 @@ game.normal_vec = function (v) {
 };
 
 game.unit_vec = function (v) {
-    return game.scalar_vec(1/game.len_vec(v), v);
+    var len = game.len_vec(v);
+
+    if (len === 0) {
+        throw("The vector has length 0; cannot find it unit vector!");
+    }
+    
+    return game.scalar_vec(1/len, v);
 };
 
 game.unit_normal = function (v) {
